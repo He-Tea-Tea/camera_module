@@ -1,0 +1,11 @@
+---
+
+string camera_name
+
+bool rgb
+
+bool depth
+
+bool imu
+
+string model

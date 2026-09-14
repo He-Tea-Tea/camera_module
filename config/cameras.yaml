@@ -1,0 +1,14 @@
+camera:
+
+  head:
+
+    adapter: orbbec
+
+    model: Gemini335Le
+
+
+  wrist:
+
+    adapter: realsense
+
+    model: D435i
