@@ -1,14 +1,59 @@
+# 相机设备配置文件
+#
+# 作用：
+# 定义机器人当前使用的相机设备。
+#
+# camera_manager读取该文件，
+# 根据adapter字段加载对应驱动。
+#
+# 更换相机时：
+# 只需要修改这里的配置，
+# 上层大脑无需修改。
+
+
 camera:
 
+  # 头部环境感知相机
+  # 用于：
+  # 环境观察、目标检测、场景理解等。
+  # 当前设备：
+  # Orbbec Gemini335Le
   head:
 
+    # 指定相机适配层
+    #
+    # adapter不直接代表硬件，
+    # 而是选择对应的软件适配模块。
     adapter: orbbec
 
+
+    # 相机型号
+    #
+    # 由driver层负责解析。
+    #
+    # 当前型号：
+    # Orbbec Gemini335Le
     model: Gemini335Le
 
 
+
+  # 腕部末端相机
+  #
+  # 用于：
+  # 机械臂近距离观察、
+  # 抓取定位、
+  # Eye-in-Hand视觉任务。
+  #
+  # 当前设备：
+  # Intel RealSense D436
   wrist:
 
+
+    # 指定相机适配层
+    # realsense对应Intel RealSense SDK。
     adapter: realsense
 
-    model: D435i
+
+    # 相机型号
+    # 由RealSense驱动模块加载。
+    model: D436
