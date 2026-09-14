@@ -1,46 +1,22 @@
-# 图像采集动作
-# 功能：
-# 根据大脑请求主动采集指定相机图像。
-# 适用场景：
-# 单次拍照、目标检测前采集、
-# 标定数据采集等任务。
-#
-# 与Topic区别：
-# Topic用于持续发布图像数据，
-# Action用于主动请求并获取执行过程。
-
-
-# 目标请求 Goal
-# ------------------------------
-
-string camera_name        # 指定采集的相机名称，例如 head_camera、wrist_camera
-
-bool capture_rgb          # 是否采集RGB图像
-
-bool capture_depth        # 是否采集Depth深度图像
-
+# 主动采集动作只返回证据路径和时间摘要，原始数据留在本地数据面。
+string camera_name
+string save_uri
+uint32 timeout_ms
+bool require_trusted_time
 ---
-
-
-# 执行反馈 Feedback
-# ------------------------------
-
-uint8 state                # 当前执行状态，0初始化，1采集中，2处理中
-
-float32 progress           # 当前执行进度，范围0.0~1.0
-
+bool success
+string camera_name
+uint64 frame_sequence
+string image_uri
+string optical_frame
+builtin_interfaces/Time capture_time
+bool time_trusted
+uint32 error_code
+string message
 ---
-
-
-# 最终结果 Result
-# ------------------------------
-
-bool success               # 图像采集是否成功
-
-string rgb_path            # RGB图像保存路径
-
-string depth_path          # Depth图像保存路径
-
-builtin_interfaces/Time timestamp   # 图像采集时间戳，用于数据同步
-
-string message             # 执行结果描述或错误信息
+uint8 phase
+uint8 PHASE_WAITING=0
+uint8 PHASE_CAPTURING=1
+uint8 PHASE_SAVING=2
+uint8 PHASE_DONE=3
+string message

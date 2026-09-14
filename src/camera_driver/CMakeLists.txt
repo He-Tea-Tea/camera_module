@@ -5,22 +5,48 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(camera_adapter REQUIRED)
 
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
-  set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and license is added to all source files
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
+option(CAMERA_DRIVER_ENABLE_ORBBEC "启用 Orbbec SDK v2" OFF)
+option(CAMERA_DRIVER_ENABLE_REALSENSE "启用 librealsense" OFF)
+
+add_library(camera_driver_core SHARED
+  src/mock_camera_driver.cpp
+  src/orbbec_camera_driver.cpp
+  src/realsense_camera_driver.cpp
+)
+target_compile_features(camera_driver_core PUBLIC cxx_std_17)
+target_include_directories(camera_driver_core PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(camera_driver_core camera_adapter)
+
+if(CAMERA_DRIVER_ENABLE_ORBBEC)
+  find_path(ORBBEC_INCLUDE_DIR libobsensor/ObSensor.hpp REQUIRED)
+  find_library(ORBBEC_LIBRARY NAMES OrbbecSDK OrbbecSDK_v2 REQUIRED)
+  target_compile_definitions(camera_driver_core PRIVATE CAMERA_DRIVER_HAS_ORBBEC=1)
+  target_include_directories(camera_driver_core PRIVATE ${ORBBEC_INCLUDE_DIR})
+  target_link_libraries(camera_driver_core PRIVATE ${ORBBEC_LIBRARY})
 endif()
 
+if(CAMERA_DRIVER_ENABLE_REALSENSE)
+  find_path(REALSENSE_INCLUDE_DIR librealsense2/rs.hpp REQUIRED)
+  find_library(REALSENSE_LIBRARY NAMES realsense2 REQUIRED)
+  target_compile_definitions(camera_driver_core PRIVATE CAMERA_DRIVER_HAS_REALSENSE=1)
+  target_include_directories(camera_driver_core PRIVATE ${REALSENSE_INCLUDE_DIR})
+  target_link_libraries(camera_driver_core PRIVATE ${REALSENSE_LIBRARY})
+endif()
+
+install(TARGETS camera_driver_core
+  EXPORT camera_driver_targets
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+install(DIRECTORY include/ DESTINATION include)
+ament_export_targets(camera_driver_targets HAS_LIBRARY_TARGET)
+ament_export_include_directories(include)
+ament_export_dependencies(camera_adapter)
 ament_package()

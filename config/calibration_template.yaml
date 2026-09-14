@@ -1,0 +1,19 @@
+# 标定模板；部署前必须用实际标定结果替换，不能把默认值当成生产标定。
+camera_name: head_camera
+calibration_revision: "2026-09-14-lab-UNVERIFIED"
+color:
+  width: 1280
+  height: 800
+  fx: 0.0
+  fy: 0.0
+  cx: 0.0
+  cy: 0.0
+  distortion_model: plumb_bob
+  distortion: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+depth_to_color:
+  rotation: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+  translation_m: [0.0, 0.0, 0.0]
+validation:
+  reprojection_error_px: null
+  operator: "待填写"
+  measured_at: "待填写"

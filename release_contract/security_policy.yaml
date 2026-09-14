@@ -1,0 +1,14 @@
+# 生产部署时由整机安全仓库生成 SROS2 权限；此处先固定引用名。
+authorization_profiles:
+  small_brain_local:
+    principals:
+      - "small_brain_camera_manager"
+    allowed_callers:
+      - "small_brain_local_tools"
+    brain_access: deny
+sros2_policies:
+  camera_private_local:
+    allow_discovery_from_brain: false
+    allow_topic_bridge: false
+    allowed_hosts: [RK3576_small_brain]
+    status: draft

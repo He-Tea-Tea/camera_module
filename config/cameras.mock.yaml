@@ -1,0 +1,30 @@
+# 无硬件 ROS2 联调参数，可直接启动 camera_manager_node。
+camera_manager:
+  ros__parameters:
+    camera_names: [head_camera, wrist_camera]
+    "head_camera.backend": mock
+    "head_camera.model": Mock-Gemini335Le
+    "head_camera.serial": MOCK_HEAD
+    "head_camera.optical_frame": head_camera_color_optical_frame
+    "head_camera.calibration_revision": mock-calibration-v1
+    "head_camera.component_instance_id": 1
+    "head_camera.color_width": 640
+    "head_camera.color_height": 480
+    "head_camera.depth_width": 640
+    "head_camera.depth_height": 480
+    "head_camera.fps": 30
+    "head_camera.mock_depth_m": 1.0
+    "head_camera.allow_unbound_device": true
+    "wrist_camera.backend": mock
+    "wrist_camera.model": Mock-D436
+    "wrist_camera.serial": MOCK_WRIST
+    "wrist_camera.optical_frame": wrist_camera_color_optical_frame
+    "wrist_camera.calibration_revision": mock-calibration-v1
+    "wrist_camera.component_instance_id": 2
+    "wrist_camera.color_width": 640
+    "wrist_camera.color_height": 480
+    "wrist_camera.depth_width": 640
+    "wrist_camera.depth_height": 480
+    "wrist_camera.fps": 30
+    "wrist_camera.mock_depth_m": 0.6
+    "wrist_camera.allow_unbound_device": true

@@ -1,0 +1,26 @@
+# 发布前锁定的协议和部署契约。
+release_name: camera_moduls-v0.2.0-draft
+status: draft
+protocol_major: 1
+protocol_minor: 9
+abi_revision: 17
+component:
+  component_kind: 7
+  device_id: 255
+  instance_id_policy: "部署文件固定，禁止由枚举顺序推导"
+time_policy:
+  default_hw_ptp_level: none
+  default_closed_loop_control_location: small_brain
+  local_camera_available_is_not_confirmation: true
+  stale_object_pose_result: STALE_OBJECT_POSE
+  missing_local_confirmation_result: PERCEPTION_CONFIRMATION_REQUIRED
+startup_policy:
+  bootstrap_before_capability_query: true
+  hash_mismatch_action: SAFE_IDLE
+  capability_query_after_handshake: true
+  private_camera_interfaces_visible_to_brain: false
+validation:
+  mock_demo: "camera_manager_demo"
+  config_validator: "camera-config-validate config/cameras.yaml"
+  ros2_build: "colcon build --symlink-install --cmake-args -DCAMERA_DRIVER_ENABLE_ORBBEC=ON -DCAMERA_DRIVER_ENABLE_REALSENSE=ON"
+  ros2_launch: "ros2 launch camera_manager camera_system.launch.py"

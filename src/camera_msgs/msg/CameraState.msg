@@ -1,17 +1,22 @@
-string camera_id
-
-string model
-
+# 相机私有状态；不能作为大脑公共控制接口。
+string camera_name
+uint16 component_instance_id
+uint8 component_kind
+uint8 device_id
 uint8 state
-
+uint8 STATE_STOPPED=0
+uint8 STATE_CONNECTING=1
+uint8 STATE_STREAMING=2
+uint8 STATE_RECONNECTING=3
+uint8 STATE_FAULT=4
 bool rgb_ready
-
 bool depth_ready
-
-float32 rgb_fps
-
-float32 depth_fps
-
-string error_code
-
-string error_message
+bool depth_aligned_to_color
+uint64 frame_sequence
+builtin_interfaces/Time last_frame_stamp
+bool time_trusted
+bool pair_synchronized
+string optical_frame
+string calibration_revision
+string last_error
+uint32 error_code

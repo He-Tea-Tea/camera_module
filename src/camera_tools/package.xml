@@ -2,10 +2,10 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>camera_tools</name>
-  <version>0.0.0</version>
-  <description>相机驱动与接口工具包</description>
+  <version>0.2.0</version>
+  <description>相机参数校验和无硬件冒烟测试工具</description>
   <maintainer email="HeXuBin13@outlook.com">dyf</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache-2.0</license>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

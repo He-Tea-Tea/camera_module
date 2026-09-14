@@ -1,0 +1,100 @@
+# 相机模块的局部接口清单。它是 V1.3 草案的实现映射，不冒充整机公共接口清单。
+manifest_schema_version: "0.1"
+status: draft
+protocol:
+  protocol_major: 1
+  protocol_minor: 9
+  abi_revision: 17
+  source_document: "具身本体大脑-小脑通信协议(ROS2) 方案 V1.3"
+  source_revision: "2026-09-10-candidate"
+  compatibility_policy: "锁步兼容；不一致时进入 SAFE_IDLE"
+implementation:
+  package: camera_moduls
+  base_source_commit: "294a0781fd7cefe70f5f5e136395f0bf08f3f372"
+  implementation_release: "v0.2.0-draft"
+  component_kind: 7
+  device_id: 255
+  public_brain_interface_source: "robot_body_interfaces（由整机仓库维护）"
+  source_hash: "待 ROS2 构建后生成"
+  rosidl_type_hash: "待 ROS2 构建后生成"
+  security_policy_file: "release_contract/security_policy.yaml"
+interfaces:
+  - package: camera_msgs
+    type: msg
+    name: CameraState
+    visibility: PRIVATE
+    route: LOCAL_ONLY
+    purpose: "相机状态和时间可信度"
+  - package: camera_interfaces
+    type: srv
+    name: GetPoint3D
+    visibility: PRIVATE
+    route: LOCAL_ONLY
+    purpose: "小脑本地像素到相机坐标反投影"
+  - package: camera_interfaces
+    type: srv
+    name: QueryCameraCapability
+    visibility: PRIVATE
+    route: LOCAL_ONLY
+    purpose: "小脑本地能力摘要"
+  - package: camera_interfaces
+    type: action
+    name: CaptureImage
+    visibility: PRIVATE
+    route: LOCAL_ONLY
+    purpose: "小脑本地图像证据采集"
+endpoints:
+  - name: "~/head_camera/state"
+    interface: "camera_msgs/msg/CameraState"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: camera_state
+    sros2_policy_id: camera_private_local
+  - name: "~/head_camera/get_point_3d"
+    interface: "camera_interfaces/srv/GetPoint3D"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: local_service
+    sros2_policy_id: camera_private_local
+  - name: "~/head_camera/query_capability"
+    interface: "camera_interfaces/srv/QueryCameraCapability"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: local_service
+    sros2_policy_id: camera_private_local
+  - name: "~/capture_image"
+    interface: "camera_interfaces/action/CaptureImage"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: local_action
+    sros2_policy_id: camera_private_local
+  - name: "~/wrist_camera/state"
+    interface: "camera_msgs/msg/CameraState"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: camera_state
+    sros2_policy_id: camera_private_local
+  - name: "~/wrist_camera/get_point_3d"
+    interface: "camera_interfaces/srv/GetPoint3D"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: local_service
+    sros2_policy_id: camera_private_local
+  - name: "~/wrist_camera/query_capability"
+    interface: "camera_interfaces/srv/QueryCameraCapability"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: local_service
+    sros2_policy_id: camera_private_local
+visibility_rules:
+  brain_must_not_call_private_endpoints: true
+  raw_image_in_task_hot_path: false
+  hardware_sdk_in_brain_process: false
+  object_pose_requires_local_reconfirmation: true
+  untrusted_capture_time_must_not_be_presented_as_fresh: true
+freeze_checklist:
+  - "填写真实设备序列号或固定 IP"
+  - "完成相机标定并填写 calibration_revision"
+  - "测量并确认 capture_delay_bound_ms"
+  - "ROS2 构建后生成 source_hash 和 rosidl_type_hash"
+  - "将公共能力接入 robot_body_interfaces 的整机仓库"

@@ -1,41 +1,20 @@
-# 查询相机能力服务
-#
-# 功能：
-# 查询指定相机当前支持的硬件能力。
-#
-# 设计目的：
-# 大脑只获取相机能力信息，
-# 不关心具体相机型号和底层SDK实现。
-
-
-# 请求部分
-# ------------------------------
-
-string camera_name        # 相机名称，例如 head_camera、wrist_camera
-
-
+# 查询本地相机能力摘要，不返回原始帧。
+string camera_name
 ---
-
-
-# 响应部分
-# ------------------------------
-
-bool success              # 查询是否成功
-
-string name               # 相机实例名称
-
-bool rgb_supported        # 是否支持RGB图像
-
-bool depth_supported      # 是否支持深度图像
-
-bool imu_supported        # 是否支持IMU数据
-
-uint32 image_width        # RGB图像宽度，单位pixel
-
-uint32 image_height       # RGB图像高度，单位pixel
-
-float32 min_depth_mm      # 最小有效深度距离，单位mm
-
-float32 max_depth_mm      # 最大有效深度距离，单位mm
-
-string message            # 状态信息或错误描述
+bool success
+uint32 error_code 
+uint16 component_instance_id
+uint8 component_kind
+uint8 device_id
+string model
+string serial
+string optical_frame
+string calibration_revision
+bool local_camera_available
+bool capture_delay_bound_verified
+uint32 capture_delay_bound_ms
+uint32 max_frame_age_ms
+uint32 max_pair_delta_ms
+string hw_ptp_level
+string closed_loop_control_location
+string message

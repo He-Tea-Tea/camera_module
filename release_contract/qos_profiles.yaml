@@ -1,0 +1,22 @@
+# 只描述相机私有端点的 QoS；公共能力 QoS 由整机协议仓库统一维护。
+camera_state:
+  reliability: reliable
+  durability: transient_local
+  history: keep_last
+  depth: 1
+local_service:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 1
+local_action:
+  reliability: reliable
+  durability: volatile
+  history: keep_last
+  depth: 1
+raw_image_local_debug:
+  reliability: best_effort
+  durability: volatile
+  history: keep_last
+  depth: 2
+  allowed_route: LOCAL_ONLY

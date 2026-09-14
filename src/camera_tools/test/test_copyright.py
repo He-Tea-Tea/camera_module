@@ -23,3 +23,4 @@ import pytest
 def test_copyright():
     rc = main(argv=['.', 'test'])
     assert rc == 0, 'Found errors'
+

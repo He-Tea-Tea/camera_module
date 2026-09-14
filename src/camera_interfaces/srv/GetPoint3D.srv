@@ -1,37 +1,18 @@
-# 获取像素对应三维坐标服务
-# 功能：
-# 将二维图像坐标转换为三维空间坐标。
-#
-# 用途：
-# 目标抓取、三维定位、距离测量。
-#
-# 大脑无需知道具体深度来源。
-
-
-# 请求部分
-# ------------------------------
-
-string camera_name        # 使用的相机名称，例如 head_camera、wrist_camera
-
-uint32 u                  # 图像水平坐标，单位 pixel
-
-uint32 v                  # 图像垂直坐标，单位 pixel
-
+# 小脑本地像素查询；大脑只通过受控能力获取语义证据。
+string camera_name
+uint64 sequence
+uint32 u
+uint32 v
+bool require_trusted_time
 ---
-
-# 响应部分
-# ------------------------------
-
-bool success              # 请求是否成功
-
-float32 x                 # 三维坐标X，单位米，相机坐标系
-
-float32 y                 # 三维坐标Y，单位米，相机坐标系
-
-float32 z                 # 三维坐标Z，单位米，通常表示距离相机的深度
-
-bool depth_valid          # 深度数据是否有效，false表示无深度或异常区域
-
-builtin_interfaces/Time timestamp   # 当前坐标对应时间戳，用于数据同步
-
-string message            # 错误描述或状态信息
+bool success
+float64 x_m
+float64 y_m
+float64 z_m
+string optical_frame
+uint64 frame_sequence
+builtin_interfaces/Time capture_time
+bool time_trusted
+bool depth_valid
+uint32 error_code
+string message
