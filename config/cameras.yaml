@@ -1,38 +1,19 @@
-# ROS2 参数文件。序列号或 IP 必须由部署者填写，禁止依赖枚举顺序。
-camera_manager:
-  ros__parameters:
-    camera_names: [head_camera, wrist_camera]
+camera_manager:                                # 顶层节点名，和 camera_manager 节点名一致
+  ros__parameters:                             # ROS2 参数固定写法，所有参数都必须放在这一节下
+    camera_names: [head_camera, wrist_camera]  # 声明本机有两个相机，名字分别是 head_camera 和 wrist_camera
 
-    # 头部 Orbbec Gemini335Le：建议使用固定 IP 或序列号二选一。
-    "head_camera.backend": orbbec
-    "head_camera.model": Gemini335Le
-    "head_camera.serial": ""
-    "head_camera.ip_address": "FILL_HEAD_IP_OR_EMPTY"
-    "head_camera.optical_frame": head_camera_color_optical_frame
-    "head_camera.calibration_revision": "FILL_HEAD_CALIBRATION_REVISION"
-    "head_camera.component_instance_id": 1
-    "head_camera.color_width": 1280
-    "head_camera.color_height": 800
-    "head_camera.depth_width": 1280
-    "head_camera.depth_height": 800
-    "head_camera.fps": 30
-    "head_camera.capture_delay_bound_verified": false
-    "head_camera.capture_delay_bound_ms": 0
-    "head_camera.allow_unbound_device": false
+    # ---- 头部 Orbbec 相机配置 ----
+    "head_camera.backend": orbbec              # 头相机的驱动后端，选 orbbec 就会加载 OrbbecSDK
+    "head_camera.model": Gemini335Le           # 头相机型号，用于日志和识别，方便核对
+    "head_camera.serial": "CPEP163000LG"       # 头相机序列号SN，留空表示"不按序列号筛选"；
+    "head_camera.ip_address": "192.168.1.20"   # 头相机 IP；走 Ethernet 时填实际地址，或留空让 SDK 自动发现
+    "head_camera.component_instance_id": 1     # 头相机在整机里的组件编号，必须唯一、跨重启稳定，方便大脑/小脑对应
+    "head_camera.optical_frame": head_camera_color_optical_frame  # 头相机光心坐标系的 TF 名字，供坐标变换使用
 
-    # 腕部 RealSense D436：必须填写实际序列号。
-    "wrist_camera.backend": realsense
-    "wrist_camera.model": D436
-    "wrist_camera.serial": "FILL_REAL_SERIAL"
-    "wrist_camera.ip_address": ""
-    "wrist_camera.optical_frame": wrist_camera_color_optical_frame
-    "wrist_camera.calibration_revision": "FILL_WRIST_CALIBRATION_REVISION"
-    "wrist_camera.component_instance_id": 2
-    "wrist_camera.color_width": 640
-    "wrist_camera.color_height": 480
-    "wrist_camera.depth_width": 640
-    "wrist_camera.depth_height": 480
-    "wrist_camera.fps": 30
-    "wrist_camera.capture_delay_bound_verified": false
-    "wrist_camera.capture_delay_bound_ms": 0
-    "wrist_camera.allow_unbound_device": false
+    # ---- 腕部 RealSense 相机配置 ----
+    "wrist_camera.backend": realsense          # 腕相机驱动后端，选 realsense 就会加载 librealsense
+    "wrist_camera.model": D436                 # 腕相机型号，用于日志和识别
+    "wrist_camera.serial": "实际序列号"          # 腕相机序列号，RealSense 多机时必填，用 rs-enumerate-devices 查
+    "wrist_camera.ip_address": ""              # 腕相机走 USB，不需要 IP，留空
+    "wrist_camera.component_instance_id": 2    # 腕相机组件编号，必须和头相机不同
+    "wrist_camera.optical_frame": wrist_camera_color_optical_frame  # 腕相机光心坐标系的 TF 名字
