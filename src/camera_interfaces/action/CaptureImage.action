@@ -1,22 +1,23 @@
-# 主动采集动作只返回证据路径和时间摘要，原始数据留在本地数据面。
-string camera_name
-string save_uri
-uint32 timeout_ms
-bool require_trusted_time
+# 主动采集动作只返回本地证据路径和帧身份摘要，原始RGB-D留在小脑数据面。
+string camera_name #目标逻辑相机名称
+string save_uri #本地绝对路径或file:// URI；空字符串时使用/tmp下默认文件名
+uint32 timeout_ms #等待新鲜RGB-D帧的最长时间；0使用节点默认值
+bool require_trusted_time #true时只允许使用具有可信采集时间的帧
 ---
-bool success
-string camera_name
-uint64 frame_sequence
-string image_uri
-string optical_frame
-builtin_interfaces/Time capture_time
-bool time_trusted
-uint32 error_code
-string message
+bool success #动作是否成功保存证据图像
+string camera_name #实际执行抓拍的逻辑相机名称
+uint8[16] frame_session_uuid #v0.2.4新增；证据帧所属streaming session UUID
+uint64 frame_sequence #证据帧在当前session内的序号
+string image_uri #保存成功后的本地文件绝对路径
+string optical_frame #证据帧关联的相机光学坐标系
+builtin_interfaces/Time capture_time #可信时才填写的采集时间；不可信时保持0
+bool time_trusted #capture_time是否可信
+uint32 error_code #camera_module内部结果码
+string message #人类可读结果或失败原因
 ---
-uint8 phase
-uint8 PHASE_WAITING=0
-uint8 PHASE_CAPTURING=1
-uint8 PHASE_SAVING=2
-uint8 PHASE_DONE=3
-string message
+uint8 phase #当前抓拍阶段
+uint8 PHASE_WAITING=0 #等待满足新鲜度/时间要求的RGB-D帧
+uint8 PHASE_CAPTURING=1 #已经锁定证据帧
+uint8 PHASE_SAVING=2 #正在原子写入本地证据文件
+uint8 PHASE_DONE=3 #证据保存完成
+string message #当前阶段的人类可读说明

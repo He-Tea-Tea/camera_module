@@ -1,0 +1,99 @@
+# camera_module 私有接口清单。
+# 注意：本文件不是V1.3定义的整机权威interface_manifest.yaml，不能冒充公司级公共ABI清单。
+manifest_schema_version: "0.2"                  # camera_module自己的私有清单schema版本
+status: draft                                    # v0.2.4仍是模块级草案，最终公共发布由整机仓库冻结
+scope: camera_private_local                      # 所有接口只允许小脑本地使用
+protocol:
+  protocol_major: 1                             # 对照V1.3公共协议主版本
+  protocol_minor: 9                             # 对照V1.3公共协议次版本
+  abi_revision: 17                              # 严格对齐2026-09-10 V1.3候选稿ABI revision
+  source_document: "具身本体大脑-小脑通信协议(ROS2) 方案 V1.3"  # 协议来源
+  source_revision: "2026-09-10-candidate"        # 当前对照的协议候选稿日期
+  compatibility_policy: "锁步兼容；公共协议不一致时由整机层进入SAFE_IDLE"  # 公共兼容策略
+implementation:
+  package: camera_module                        # 当前模块名称
+  implementation_release: "v0.2.4"             # 当前实现版本
+  component_kind: 7                             # V1.3 COMPONENT_CAMERA
+  device_id: 255                                # V1.3 DEVICE_NONE；相机不占公共DeviceState ID
+  public_brain_interface_source: "robot_body_interfaces（由整机仓库维护）"  # 公共ABI不在本仓库定义
+  security_policy_file: "release_contract/security_policy.yaml"  # 私有接口安全策略草案
+interfaces:
+  - package: camera_msgs                        # 私有消息包
+    type: msg                                    # ROS2 Message
+    name: CameraState                            # 相机本地运行状态
+    visibility: PRIVATE                          # 禁止成为公共ABI
+    route: LOCAL_ONLY                            # 禁止跨SoC路由
+    purpose: "相机状态、会话UUID和时间可信度"
+  - package: camera_interfaces                  # 私有接口包
+    type: srv                                    # ROS2 Service
+    name: GetPoint3D                             # 像素到相机坐标三维点查询
+    visibility: PRIVATE
+    route: LOCAL_ONLY
+    purpose: "小脑本地像素到相机坐标反投影"
+  - package: camera_interfaces
+    type: srv
+    name: QueryCameraCapability                  # 单相机能力摘要，仅供小脑能力汇聚器读取
+    visibility: PRIVATE
+    route: LOCAL_ONLY
+    purpose: "小脑本地能力摘要"
+  - package: camera_interfaces
+    type: action                                 # ROS2 Action；抓拍可能等待、取消和超时
+    name: CaptureImage
+    visibility: PRIVATE
+    route: LOCAL_ONLY
+    purpose: "小脑本地图像证据采集"
+endpoints:
+  - name: "~/head_camera/state"
+    interface: "camera_msgs/msg/CameraState"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: camera_state
+    sros2_policy_id: camera_private_local
+  - name: "~/head_camera/get_point_3d"
+    interface: "camera_interfaces/srv/GetPoint3D"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: local_service
+    sros2_policy_id: camera_private_local
+  - name: "~/head_camera/query_capability"
+    interface: "camera_interfaces/srv/QueryCameraCapability"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: local_service
+    sros2_policy_id: camera_private_local
+  - name: "~/capture_image"
+    interface: "camera_interfaces/action/CaptureImage"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: local_action
+    sros2_policy_id: camera_private_local
+  - name: "~/wrist_camera/state"
+    interface: "camera_msgs/msg/CameraState"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: camera_state
+    sros2_policy_id: camera_private_local
+  - name: "~/wrist_camera/get_point_3d"
+    interface: "camera_interfaces/srv/GetPoint3D"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: local_service
+    sros2_policy_id: camera_private_local
+  - name: "~/wrist_camera/query_capability"
+    interface: "camera_interfaces/srv/QueryCameraCapability"
+    route_direction: LOCAL_ONLY
+    authorization_profile: small_brain_local
+    qos_profile_id: local_service
+    sros2_policy_id: camera_private_local
+visibility_rules:
+  brain_must_not_call_private_endpoints: true    # 大脑不得直接调用camera_interfaces
+  raw_image_in_task_hot_path: false              # 原始RGB-D不得进入任务热路径
+  hardware_sdk_in_brain_process: false           # 大脑进程不得链接厂商相机SDK
+  object_pose_requires_local_reconfirmation: true  # 高风险动作前由小脑本地重新确认目标
+  untrusted_capture_time_must_not_be_presented_as_fresh: true  # 未验证时间不得冒充采集时间
+freeze_checklist:
+  - "填写真实设备序列号或固定IP"
+  - "完成相机标定并填写calibration_revision"
+  - "测量并确认capture_delay_bound_ms后才能声明time_trusted"
+  - "ROS2构建后由整机发布仓库生成正式RIHS01 type hash"
+  - "将本地能力映射到robot_body_interfaces的QueryCapabilities"

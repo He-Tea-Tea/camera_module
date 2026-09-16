@@ -1,11 +1,14 @@
 <?xml version="1.0"?>
+<!-- camera_adapter只描述厂商无关的RGB-D契约，不依赖Orbbec或RealSense SDK。 -->
 <package format="3">
   <name>camera_adapter</name>
-  <version>0.2.3</version>
-  <description>与厂商 SDK 解耦的 RGB-D 相机数据契约和帧缓存。</description>
+  <version>0.2.4</version>
+  <description>与厂商 SDK 解耦的 RGB-D 相机数据契约、时间语义和有界帧缓存。</description>
   <maintainer email="HeXuBin13@outlook.com">dyf</maintainer>
   <license>Apache-2.0</license>
+  <!-- 使用ament_cmake构建C++核心库。 -->
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <!-- 保留ROS2标准lint依赖，后续CI可以直接启用。 -->
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
   <export>

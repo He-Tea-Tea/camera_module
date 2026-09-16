@@ -1,14 +1,14 @@
-# 生产部署时由整机安全仓库生成 SROS2 权限；此处先固定引用名。
+# 生产部署时由整机安全仓库生成真正的SROS2权限；本文件只固定camera_module私有边界要求。
 authorization_profiles:
   small_brain_local:
     principals:
-      - "small_brain_camera_manager"
+      - "small_brain_camera_manager"            # 相机管理器服务端身份
     allowed_callers:
-      - "small_brain_local_tools"
-    brain_access: deny
+      - "small_brain_local_tools"               # 小脑本地诊断/执行模块可以调用
+    brain_access: deny                           # Brain身份不得调用私有相机端点
 sros2_policies:
   camera_private_local:
-    allow_discovery_from_brain: false
-    allow_topic_bridge: false
-    allowed_hosts: [RK3576_small_brain]
-    status: draft
+    allow_discovery_from_brain: false            # Brain侧不应发现camera_interfaces
+    allow_topic_bridge: false                    # 私有Topic不得被公共Router透传
+    allowed_hosts: [RK3576_small_brain]          # 示例部署主机；整机发布时按实际主机生成策略
+    status: draft                                # 这里只是约束草案，不等于真正SROS2证书/permissions文件

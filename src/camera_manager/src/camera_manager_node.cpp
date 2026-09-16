@@ -1,3 +1,4 @@
+// ROS2相机管理节点：把CameraRegistry封装成小脑PRIVATE/LOCAL_ONLY Topic、Service和Action。
 #include "camera_manager/manager.hpp"
 
 #include "camera_interfaces/action/capture_image.hpp"
@@ -27,7 +28,9 @@ namespace camera_manager {
 
 namespace {
 
+// CaptureImage未显式指定timeout时使用1秒默认值。
 constexpr uint32_t kDefaultCaptureTimeoutMs = 1000;
+// 防止错误请求让Action后台线程无边界等待；最大允许60秒。
 constexpr uint32_t kMaximumCaptureTimeoutMs = 60000;
 
 // 将纳秒时间戳转换成 ROS2 标准时间消息。
@@ -44,18 +47,22 @@ std::filesystem::path parse_local_path(const std::string &save_uri,
                                        uint64_t sequence) {
     std::string path = save_uri;
     constexpr const char *file_prefix = "file://";
+    // file://URI转换成本地绝对路径。
     if (path.rfind(file_prefix, 0) == 0) {
         path.erase(0, std::char_traits<char>::length(file_prefix));
     } else if (path.find("://") != std::string::npos) {
+        // v0.2.4仍禁止http/s3等远程URI，避免camera_module越权变成网络文件服务。
         throw camera_adapter::CameraError(
             camera_adapter::ErrorCode::InvalidRequest,
             "CaptureImage 当前只接受本机路径或 file:// URI");
     }
+    // 空save_uri使用/tmp下基于相机名和sequence的默认PPM文件名。
     if (path.empty()) {
         path = "/tmp/" + camera_name + "_" + std::to_string(sequence) + ".ppm";
     }
 
     const std::filesystem::path result(path);
+    // 相对路径依赖当前工作目录，容易造成证据位置歧义，因此强制绝对路径。
     if (!result.is_absolute()) {
         throw camera_adapter::CameraError(
             camera_adapter::ErrorCode::InvalidRequest,
@@ -66,12 +73,14 @@ std::filesystem::path parse_local_path(const std::string &save_uri,
 
 }  // namespace
 
+// CameraManagerNode只负责ROS2控制面；真实硬件连接由CameraRegistry后台线程执行。
 class CameraManagerNode final : public rclcpp::Node {
 public:
     using GetPoint3D = camera_interfaces::srv::GetPoint3D;
     using QueryCapability = camera_interfaces::srv::QueryCameraCapability;
     using CaptureImage = camera_interfaces::action::CaptureImage;
 
+    // 构造顺序：读取配置 -> 创建Registry -> 建立本地ROS2端点 -> 后台启动硬件。
     CameraManagerNode() : Node("camera_manager") {
         auto configs = read_parameters();
         registry_ = std::make_unique<CameraRegistry>(std::move(configs));
@@ -85,6 +94,7 @@ public:
                     "相机管理器控制面已启动，硬件连接正在后台执行");
     }
 
+    // 析构时先通知Action后台任务和Registry停止，再等待已经启动的抓拍future结束。
     ~CameraManagerNode() override {
         shutting_down_.store(true);
         if (registry_) {
@@ -102,7 +112,9 @@ public:
     }
 
 private:
+    // 从ROS2参数读取多相机CameraConfig；所有字段最终仍会经过CameraConfig::validate()。
     std::vector<camera_adapter::CameraConfig> read_parameters() {
+        // camera_names定义本次节点管理的逻辑相机集合。
         const auto names = declare_parameter<std::vector<std::string>>(
             "camera_names", {"head_camera"});
         std::vector<camera_adapter::CameraConfig> configs;
@@ -111,6 +123,7 @@ private:
             camera_adapter::CameraConfig config;
             config.name = name;
             const std::string prefix = name + ".";
+            // 后端、设备型号和绑定信息。
             config.backend = declare_parameter<std::string>(prefix + "backend", "mock");
             config.model = declare_parameter<std::string>(prefix + "model", "Mock RGB-D");
             config.serial = declare_parameter<std::string>(prefix + "serial", "");
@@ -122,6 +135,8 @@ private:
                     prefix + "network_port 必须为 1..65535");
             }
             config.network_port = static_cast<uint16_t>(network_port);
+
+            // 坐标系、标定revision和V1.3稳定组件实例号。
             config.optical_frame = declare_parameter<std::string>(
                 prefix + "optical_frame", name + "_color_optical_frame");
             config.calibration_revision = declare_parameter<std::string>(
@@ -134,6 +149,8 @@ private:
                     prefix + "component_instance_id 必须为 1..65534");
             }
             config.component_instance_id = static_cast<uint16_t>(component_instance_id);
+
+            // RGB/Depth目标码流尺寸和帧率。
             config.color_width = static_cast<uint32_t>(declare_parameter<int>(
                 prefix + "color_width", 640));
             config.color_height = static_cast<uint32_t>(declare_parameter<int>(
@@ -143,6 +160,8 @@ private:
             config.depth_height = static_cast<uint32_t>(declare_parameter<int>(
                 prefix + "depth_height", 480));
             config.fps = static_cast<uint32_t>(declare_parameter<int>(prefix + "fps", 30));
+
+            // SDK取帧、连续无帧、重连和本地缓存参数。
             config.wait_timeout_ms = static_cast<uint32_t>(declare_parameter<int>(
                 prefix + "wait_timeout_ms", 200));
             config.disconnect_timeout_ms = static_cast<uint32_t>(declare_parameter<int>(
@@ -151,51 +170,69 @@ private:
                 prefix + "reconnect_delay_ms", 1000));
             config.cache_capacity = static_cast<uint32_t>(declare_parameter<int>(
                 prefix + "cache_capacity", 6));
+
+            // 本地观测新鲜度和RGB-D同步门控。
             config.max_frame_age_ms = static_cast<uint32_t>(declare_parameter<int>(
                 prefix + "max_frame_age_ms", 200));
             config.max_pair_delta_ms = static_cast<uint32_t>(declare_parameter<int>(
                 prefix + "max_pair_delta_ms", 35));
+
+            // 可信采集时间策略；未实测时必须保持verified=false和bound=0。
             config.capture_delay_bound_verified = declare_parameter<bool>(
                 prefix + "capture_delay_bound_verified", false);
             config.capture_delay_bound_ms = static_cast<uint32_t>(declare_parameter<int>(
                 prefix + "capture_delay_bound_ms", 0));
+
+            // 生产设备绑定策略和统一有效深度范围。
             config.allow_unbound_device = declare_parameter<bool>(
                 prefix + "allow_unbound_device", config.backend == "mock");
             config.min_depth_m = static_cast<float>(declare_parameter<double>(
                 prefix + "min_depth_m", 0.2));
             config.max_depth_m = static_cast<float>(declare_parameter<double>(
                 prefix + "max_depth_m", 6.0));
+
+            // Mock专用确定性数据和故障注入参数。
             config.mock_depth_m = declare_parameter<double>(prefix + "mock_depth_m", 1.0);
             config.mock_disconnect_after_frames = static_cast<uint32_t>(declare_parameter<int>(
                 prefix + "mock_disconnect_after_frames", 0));
             config.mock_invalid_depth_every = static_cast<uint32_t>(declare_parameter<int>(
                 prefix + "mock_invalid_depth_every", 0));
+
             configs.push_back(std::move(config));
         }
         return configs;
     }
 
+    // 为每台相机创建PRIVATE Service/Topic，并创建共享CaptureImage Action Server。
     void create_local_endpoints() {
         for (const auto &capability : registry_->capabilities()) {
             const auto name = capability.camera_name;
+
+            // 像素三维查询Service；PUBLIC Router不得直接透传该端点。
             point_services_[name] = create_service<GetPoint3D>(
                 "~/" + name + "/get_point_3d",
                 [this](const std::shared_ptr<const GetPoint3D::Request> request,
                        std::shared_ptr<GetPoint3D::Response> response) {
                     handle_point(request, response);
                 });
+
+            // 单相机能力摘要Service；整机capability aggregator可以在小脑本地读取并转成公共强类型能力。
             capability_services_[name] = create_service<QueryCapability>(
                 "~/" + name + "/query_capability",
                 [this](const std::shared_ptr<const QueryCapability::Request> request,
                        std::shared_ptr<QueryCapability::Response> response) {
                     handle_capability(request, response);
                 });
+
+            // 状态Topic使用depth=1+transient_local，使新本地订阅者能立即看到最近状态。
             state_publishers_[name] = create_publisher<camera_msgs::msg::CameraState>(
                 "~/" + name + "/state", rclcpp::QoS(1).transient_local());
         }
 
+        // 抓拍是可等待、可取消、有反馈的本地长操作，因此使用Action而不是Service。
         capture_server_ = rclcpp_action::create_server<CaptureImage>(
             this, "~/capture_image",
+            // Goal接纳阶段只做快速静态检查，不能阻塞在相机SDK上。
             [](const rclcpp_action::GoalUUID &,
                const std::shared_ptr<const CaptureImage::Goal> goal) {
                 if (goal->camera_name.empty() || goal->timeout_ms > kMaximumCaptureTimeoutMs) {
@@ -203,11 +240,14 @@ private:
                 }
                 return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
             },
+            // 抓拍允许取消；执行线程会在等待和保存前检查cancel状态。
             [](const std::shared_ptr<rclcpp_action::ServerGoalHandle<CaptureImage>>) {
                 return rclcpp_action::CancelResponse::ACCEPT;
             },
+            // 每个Goal使用独立async任务，避免长I/O阻塞ROS2回调线程。
             [this](const std::shared_ptr<rclcpp_action::ServerGoalHandle<CaptureImage>> handle) {
                 std::lock_guard<std::mutex> lock(action_mutex_);
+                // 回收已经结束的future，并通过get传播线程内部未捕获异常。
                 action_futures_.erase(
                     std::remove_if(
                         action_futures_.begin(), action_futures_.end(),
@@ -225,10 +265,12 @@ private:
                     [this, handle]() { execute_capture(handle); }));
             });
 
+        // 10Hz发布私有状态快照；状态不是高带宽图像数据。
         state_timer_ = create_wall_timer(std::chrono::milliseconds(100),
                                          [this]() { publish_states(); });
     }
 
+    // 处理GetPoint3D：Registry负责帧选择和新鲜度，ROS层只做字段映射。
     void handle_point(const std::shared_ptr<const GetPoint3D::Request> request,
                       const std::shared_ptr<GetPoint3D::Response> response) {
         response->success = false;
@@ -248,6 +290,10 @@ private:
             response->optical_frame = sample.frame ? sample.frame->optical_frame : "";
             response->error_code = static_cast<uint32_t>(sample.code);
             response->message = sample.message;
+            if (sample.frame) {
+                // v0.2.4把session UUID和sequence一起返回，避免重连后sequence重复歧义。
+                response->frame_session_uuid = sample.frame->provider_instance;
+            }
             if (sample.frame && sample.frame->timing.capture_system_ns != 0) {
                 response->capture_time = to_builtin_time(
                     sample.frame->timing.capture_system_ns);
@@ -258,6 +304,7 @@ private:
         }
     }
 
+    // 处理单相机私有能力摘要；公共QueryCapabilities必须由整机层另行汇聚和强类型转换。
     void handle_capability(const std::shared_ptr<const QueryCapability::Request> request,
                            const std::shared_ptr<QueryCapability::Response> response) {
         response->success = false;
@@ -295,6 +342,7 @@ private:
         }
     }
 
+    // 发布每台相机的PRIVATE CameraState快照。
     void publish_states() {
         for (const auto &capability : registry_->capabilities()) {
             const auto status = registry_->status(capability.camera_name);
@@ -306,7 +354,9 @@ private:
             message.state = static_cast<uint8_t>(status.state);
             message.rgb_ready = status.state == camera_adapter::CameraState::Streaming;
             message.depth_ready = status.state == camera_adapter::CameraState::Streaming;
+            // 当前session至少缓存过一帧才声明已经验证D2C输出。
             message.depth_aligned_to_color = status.frame_count != 0;
+            message.frame_session_uuid = status.frame_session_uuid;
             message.frame_sequence = status.last_sequence;
             if (status.last_capture_system_ns != 0) {
                 message.last_frame_stamp = to_builtin_time(status.last_capture_system_ns);
@@ -321,6 +371,7 @@ private:
         }
     }
 
+    // 获取指定相机的新鲜度阈值；抓拍等待使用与三维查询一致的配置。
     uint32_t max_frame_age_ms(const std::string &camera_name) const {
         for (const auto &capability : registry_->capabilities()) {
             if (capability.camera_name == camera_name) {
@@ -332,6 +383,7 @@ private:
             "未知相机: " + camera_name);
     }
 
+    // 等待一帧满足Action的新鲜度、可信时间和取消/超时条件。
     std::shared_ptr<const camera_adapter::CameraFrame> wait_capture_frame(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<CaptureImage>> &handle,
         camera_adapter::ErrorCode &error_code,
@@ -345,6 +397,7 @@ private:
                               std::chrono::milliseconds(timeout_ms);
 
         while (!shutting_down_.load() && rclcpp::ok()) {
+            // Action取消优先于继续等待帧。
             if (handle->is_canceling()) {
                 error_code = camera_adapter::ErrorCode::Canceled;
                 message = "抓拍请求已取消";
@@ -356,11 +409,18 @@ private:
                 const uint64_t now_ns = camera_adapter::steady_now_ns();
                 double age_ms = 0.0;
                 if (frame->timing.trusted) {
+                    // 有可信采集时间时使用保守采集年龄上界。
                     age_ms = camera_adapter::frame_age_upper_ms(frame->timing, now_ns);
                 } else if (frame->timing.receive_steady_ns != 0 &&
                            now_ns >= frame->timing.receive_steady_ns) {
+                    // 无可信采集时间时只使用本机接收年龄，不伪装成设备采集时间。
                     age_ms = static_cast<double>(
                         now_ns - frame->timing.receive_steady_ns) / 1e6;
+                } else {
+                    // 没有有效接收时间的帧不能被抓拍Action使用。
+                    error_code = camera_adapter::ErrorCode::TimeUntrusted;
+                    message = "最新帧没有可用接收时间";
+                    age_ms = static_cast<double>(maximum_age_ms) + 1.0;
                 }
 
                 if (goal->require_trusted_time && !frame->timing.trusted) {
@@ -368,7 +428,7 @@ private:
                     message = "最新帧没有可信采集时间";
                 } else if (age_ms <= maximum_age_ms) {
                     return frame;
-                } else {
+                } else if (error_code != camera_adapter::ErrorCode::TimeUntrusted) {
                     error_code = camera_adapter::ErrorCode::StaleFrame;
                     message = "最新帧已经过期";
                 }
@@ -377,9 +437,11 @@ private:
                 message = "没有可用帧";
             }
 
+            // 达到Action deadline后返回最后一次明确错误原因。
             if (std::chrono::steady_clock::now() >= deadline) {
                 return nullptr;
             }
+            // 20ms轮询足以响应30FPS相机，同时不会忙等占满CPU。
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
 
@@ -388,6 +450,7 @@ private:
         return nullptr;
     }
 
+    // 执行一次CaptureImage Action：等待新鲜帧 -> 原子保存PPM -> 返回帧身份摘要。
     void execute_capture(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<CaptureImage>> &handle) {
         auto result = std::make_shared<CaptureImage::Result>();
@@ -395,6 +458,7 @@ private:
         result->camera_name = goal->camera_name;
 
         try {
+            // 阶段1：等待满足要求的新鲜RGB-D证据帧。
             auto feedback = std::make_shared<CaptureImage::Feedback>();
             feedback->phase = CaptureImage::Feedback::PHASE_WAITING;
             feedback->message = "等待新鲜 RGB-D 帧";
@@ -415,6 +479,7 @@ private:
                 return;
             }
 
+            // 阶段2：锁定不可变shared_ptr帧，后续即使缓存滚动也不会改变证据内容。
             feedback->phase = CaptureImage::Feedback::PHASE_CAPTURING;
             feedback->message = "已锁定新鲜帧";
             handle->publish_feedback(feedback);
@@ -428,6 +493,7 @@ private:
                 return;
             }
 
+            // 阶段3：先写临时文件，再rename成最终文件，避免调用方看到半写入证据。
             feedback->phase = CaptureImage::Feedback::PHASE_SAVING;
             feedback->message = "正在原子保存 RGB 证据";
             handle->publish_feedback(feedback);
@@ -443,6 +509,7 @@ private:
                     "无法创建临时图像文件: " + temporary_path);
             }
 
+            // PPM P6格式简单、无额外编码依赖，调试证据可被常见图像工具直接打开。
             output << "P6\n"
                    << frame->intrinsics.width << " "
                    << frame->intrinsics.height << "\n255\n";
@@ -457,8 +524,10 @@ private:
             }
             std::filesystem::rename(temporary_path, output_path);
 
+            // 成功结果返回session UUID+sequence，调用方可以唯一关联证据帧。
             result->success = true;
             result->image_uri = output_path.string();
+            result->frame_session_uuid = frame->provider_instance;
             result->frame_sequence = frame->sequence;
             result->optical_frame = frame->optical_frame;
             result->time_trusted = frame->timing.trusted;
@@ -487,21 +556,22 @@ private:
         }
     }
 
-    std::unique_ptr<CameraRegistry> registry_;
-    rclcpp::TimerBase::SharedPtr state_timer_;
-    rclcpp_action::Server<CaptureImage>::SharedPtr capture_server_;
-    std::atomic<bool> shutting_down_{false};
-    std::mutex action_mutex_;
-    std::vector<std::future<void>> action_futures_;
-    std::unordered_map<std::string, rclcpp::Service<GetPoint3D>::SharedPtr> point_services_;
+    std::unique_ptr<CameraRegistry> registry_;  // 核心多相机Registry。
+    rclcpp::TimerBase::SharedPtr state_timer_;  // 10Hz私有状态发布定时器。
+    rclcpp_action::Server<CaptureImage>::SharedPtr capture_server_;  // 本地抓拍Action Server。
+    std::atomic<bool> shutting_down_{false};   // 节点析构/关闭标记。
+    std::mutex action_mutex_;                   // 保护action_futures_容器。
+    std::vector<std::future<void>> action_futures_;  // 后台抓拍任务集合。
+    std::unordered_map<std::string, rclcpp::Service<GetPoint3D>::SharedPtr> point_services_;  // 每相机3D查询Service。
     std::unordered_map<std::string, rclcpp::Service<QueryCapability>::SharedPtr>
-        capability_services_;
+        capability_services_;                   // 每相机能力摘要Service。
     std::unordered_map<std::string, rclcpp::Publisher<camera_msgs::msg::CameraState>::SharedPtr>
-        state_publishers_;
+        state_publishers_;                      // 每相机PRIVATE状态Publisher。
 };
 
 }  // namespace camera_manager
 
+// 标准ROS2节点入口；Launch负责传入参数文件。
 int main(int argc, char **argv) {
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<camera_manager::CameraManagerNode>());

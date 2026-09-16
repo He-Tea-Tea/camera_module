@@ -1,54 +1,38 @@
-# ROS2 编译文件
+# ROS2 编译目录；这些目录由 colcon 自动生成，不提交到代码仓库。
 build/
 install/
 log/
 
+# 编译和运行日志。
 *.log
+Log/
 
-# ROS2运行缓存
+# ROS2 本地运行缓存。
 .ros/
 
-# VSCode配置
+# 编辑器本地配置。
 .vscode/
 
-# 如果希望共享部分配置，可以改成：
-# .vscode/settings.json
-# .vscode/tasks.json
-
-# Python缓存
+# Python 解释器缓存和打包产物。
 __pycache__/
-
 *.pyc
 *.pyo
 *.pyd
-
 *.egg-info/
 
-
-
-# C++编译缓存
-
+# C/C++ 编译产物。
 *.o
 *.obj
-
 *.so
 *.a
 *.dll
-
 cmake-build-*/
 
-
-
-# 测试产生的数据
-
+# 测试、采集和算法运行生成的数据。
 test_data/
 data/
 output/
 result/
-
-
-
-# 相机采集数据
 captures/
 images/
 videos/
@@ -56,43 +40,34 @@ pointclouds/
 *.bag
 *.db3
 
-
-
-# 相机SDK临时文件
+# 厂商 SDK 临时文件。
 *.cache
 *.tmp
 *.temp
 
-
-
-# 日志
-Log/
-*.log
-
-
-# 系统文件
-.DS_Store
-Thumbs.db
-
-# 本地环境
+# 本地环境文件。
 .env
 *.local
 
-
-# ROS参数临时文件
+# ROS 参数临时备份。
 *.yaml.bak
 *.yaml.tmp
 
-
-
-# Qt/OpenCV缓存
+# Qt/OpenCV 和常见系统缓存。
 .qmake.stash
 .moc/
 .obj/
+.DS_Store
+Thumbs.db
 
-
-
-# 临时编辑文件
+# 编辑器临时文件。
 *~
 *.swp
 *.swo
+
+# v0.2.3 曾误提交过的本地 Profile 探针二进制；v0.2.4 仅保留源码。
+/test_orbbec_profiles
+/tools/orbbec_profile_probe
+
+# pytest本地缓存；只用于开发机加速测试，不属于源码制品。
+.pytest_cache/

@@ -1,12 +1,17 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<!-- camera_tools：提供相机配置、协议草案和无硬件冒烟验证工具。 -->
 <package format="3">
   <name>camera_tools</name>
-  <version>0.2.3</version>
-  <description>相机参数校验和无硬件冒烟测试工具</description>
+  <version>0.2.4</version>
+  <description>相机参数校验、V1.3私有边界校验和无硬件冒烟测试工具。</description>
   <maintainer email="HeXuBin13@outlook.com">dyf</maintainer>
   <license>Apache-2.0</license>
 
+  <!-- 运行配置校验器和协议校验器需要PyYAML。 -->
+  <exec_depend>python3-yaml</exec_depend>
+
+  <!-- ROS2 Python包的常规代码规范测试依赖。 -->
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>

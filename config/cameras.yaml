@@ -4,7 +4,6 @@ camera_manager:                                # 顶层节点名，必须和came
     camera_names: [head_camera]                # 当前只启用头部335LE相机
 
     # ---- 头部Orbbec Gemini335LE配置 ----
-
     "head_camera.backend": orbbec              # 使用Orbbec普通SDK驱动
     "head_camera.model": Gemini335Le           # 相机型号，用于日志、状态和能力查询
 
@@ -18,10 +17,10 @@ camera_manager:                                # 顶层节点名，必须和came
     "head_camera.component_instance_id": 1     # 组件实例号，必须唯一且跨重启保持不变
     "head_camera.optical_frame": head_camera_color_optical_frame  # 彩色相机光学坐标系
 
-    # 当前还没有完成正式标定，先明确标记为未验证。
+    # 当前还没有完成正式标定，明确标记为未验证；完成标定后必须换成真实revision。
     "head_camera.calibration_revision": factory-unverified-20260916
 
-    # RGB与Depth使用已经通过官方SDK验证的码流组合。
+    # RGB与Depth使用当前Gemini335Le实机已经验证通过的码流组合。
     "head_camera.color_width": 640             # 彩色图像宽度
     "head_camera.color_height": 400            # 彩色图像高度
     "head_camera.depth_width": 640             # 深度图像宽度
@@ -36,45 +35,38 @@ camera_manager:                                # 顶层节点名，必须和came
 
     # 帧新鲜度和RGB-D同步限制。
     "head_camera.max_frame_age_ms": 500        # 三维查询允许使用的最大帧年龄
-    "head_camera.max_pair_delta_ms": 35        # RGB和Depth允许的最大采集时间差
+    "head_camera.max_pair_delta_ms": 35        # RGB和Depth允许的最大设备时间差
 
     # 尚未实测采集延迟，因此当前不能声明采集时间可信。
-    "head_camera.capture_delay_bound_verified": false
-    "head_camera.capture_delay_bound_ms": 0
+    "head_camera.capture_delay_bound_verified": false  # 只有完成延迟上界实测后才能改为true
+    "head_camera.capture_delay_bound_ms": 0            # 未验证时固定为0，禁止伪造可信采集时间
 
-    # 相机允许使用的深度范围，单位为米。
-    "head_camera.min_depth_m": 0.2
-    "head_camera.max_depth_m": 30.0
+    # 相机允许使用的深度范围，单位为米；v0.2.4开始在驱动入帧阶段真正执行该过滤。
+    "head_camera.min_depth_m": 0.2             # 小于该距离的深度统一写成0，表示无效
+    "head_camera.max_depth_m": 30.0            # 大于该距离的深度统一写成0，表示无效
 
     # ---- 腕部RealSense D436配置 ----
     # 当前没有D436，因此以下参数全部保留为注释，不会被camera_manager读取。
-
     # "wrist_camera.backend": realsense         # 使用librealsense普通SDK驱动
     # "wrist_camera.model": D436                # 腕部相机型号
     # "wrist_camera.serial": "FILL_REAL_SERIAL" # D436真实序列号，多相机时必须固定绑定
     # "wrist_camera.ip_address": ""             # 当前RealSense驱动只支持USB序列号绑定
     # "wrist_camera.allow_unbound_device": false  # 禁止自动选择未绑定的RealSense设备
-
     # "wrist_camera.component_instance_id": 2   # 腕部相机组件编号，不能和头相机重复
     # "wrist_camera.optical_frame": wrist_camera_color_optical_frame  # 腕部彩色光学坐标系
     # "wrist_camera.calibration_revision": factory-unverified
-
     # "wrist_camera.color_width": 640           # 腕部彩色图像宽度
     # "wrist_camera.color_height": 480          # 腕部彩色图像高度
     # "wrist_camera.depth_width": 640           # 腕部深度图像宽度
     # "wrist_camera.depth_height": 480          # 腕部深度图像高度
     # "wrist_camera.fps": 30                    # 腕部相机目标帧率
-
     # "wrist_camera.wait_timeout_ms": 1000      # 单次等待帧的最长时间
     # "wrist_camera.disconnect_timeout_ms": 3000  # 掉线判断时间
     # "wrist_camera.reconnect_delay_ms": 1000   # 自动重连间隔
     # "wrist_camera.cache_capacity": 6          # 腕部相机缓存帧数
-
     # "wrist_camera.max_frame_age_ms": 500      # 允许使用的最大帧年龄
     # "wrist_camera.max_pair_delta_ms": 35      # RGB与Depth最大采集时间差
-
     # "wrist_camera.capture_delay_bound_verified": false  # 尚未验证采集延迟
     # "wrist_camera.capture_delay_bound_ms": 0             # 采集延迟上界
-
     # "wrist_camera.min_depth_m": 0.15          # 腕部相机最小有效深度
     # "wrist_camera.max_depth_m": 3.0           # 腕部相机最大有效深度

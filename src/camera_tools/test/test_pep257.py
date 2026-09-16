@@ -1,24 +1,11 @@
-# Copyright 2015 Open Source Robotics Foundation, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+"""ROS2标准PEP257文档字符串检查入口。"""
 
-from ament_pep257.main import main
 import pytest
+from ament_pep257.main import main
 
 
-@pytest.mark.linter
 @pytest.mark.pep257
-def test_pep257():
-    rc = main(argv=['.', 'test'])
-    assert rc == 0, 'Found code style errors / warnings'
-
+def test_pep257() -> None:
+    """检查Python模块、类和函数的文档字符串。"""
+    rc = main(argv=["."])
+    assert rc == 0, "Found code style errors / warnings"

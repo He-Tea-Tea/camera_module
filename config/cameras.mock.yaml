@@ -1,30 +1,38 @@
 # 无硬件 ROS2 联调参数，可直接启动 camera_manager_node。
 camera_manager:
   ros__parameters:
-    camera_names: [head_camera, wrist_camera]
-    "head_camera.backend": mock
-    "head_camera.model": Mock-Gemini335Le
-    "head_camera.serial": MOCK_HEAD
-    "head_camera.optical_frame": head_camera_color_optical_frame
-    "head_camera.calibration_revision": mock-calibration-v1
-    "head_camera.component_instance_id": 1
-    "head_camera.color_width": 640
-    "head_camera.color_height": 480
-    "head_camera.depth_width": 640
-    "head_camera.depth_height": 480
-    "head_camera.fps": 30
-    "head_camera.mock_depth_m": 1.0
-    "head_camera.allow_unbound_device": true
-    "wrist_camera.backend": mock
-    "wrist_camera.model": Mock-D436
-    "wrist_camera.serial": MOCK_WRIST
-    "wrist_camera.optical_frame": wrist_camera_color_optical_frame
-    "wrist_camera.calibration_revision": mock-calibration-v1
-    "wrist_camera.component_instance_id": 2
-    "wrist_camera.color_width": 640
-    "wrist_camera.color_height": 480
-    "wrist_camera.depth_width": 640
-    "wrist_camera.depth_height": 480
-    "wrist_camera.fps": 30
-    "wrist_camera.mock_depth_m": 0.6
-    "wrist_camera.allow_unbound_device": true
+    camera_names: [head_camera, wrist_camera]  # Mock模式同时启用头部和腕部两台相机，验证多实例隔离
+
+    # ---- 头部Mock相机 ----
+    "head_camera.backend": mock                 # 使用确定性Mock后端，不需要任何厂商SDK
+    "head_camera.model": Mock-Gemini335Le       # 模拟头部Gemini335Le的逻辑身份
+    "head_camera.serial": MOCK_HEAD             # Mock固定序列号，便于日志核对
+    "head_camera.optical_frame": head_camera_color_optical_frame  # 头部彩色光学坐标系
+    "head_camera.calibration_revision": mock-calibration-v2  # Mock标定修订号
+    "head_camera.component_instance_id": 1      # 头部相机稳定组件实例号
+    "head_camera.color_width": 640              # RGB宽度
+    "head_camera.color_height": 480             # RGB高度
+    "head_camera.depth_width": 640              # 深度宽度
+    "head_camera.depth_height": 480             # 深度高度
+    "head_camera.fps": 30                       # 模拟帧率
+    "head_camera.mock_depth_m": 1.0             # 默认模拟深度1米
+    "head_camera.min_depth_m": 0.2              # Mock有效深度下界
+    "head_camera.max_depth_m": 6.0              # Mock有效深度上界
+    "head_camera.allow_unbound_device": true    # Mock不需要真实硬件绑定
+
+    # ---- 腕部Mock相机 ----
+    "wrist_camera.backend": mock                # 使用确定性Mock后端
+    "wrist_camera.model": Mock-D436             # 模拟未来RealSense D436
+    "wrist_camera.serial": MOCK_WRIST           # Mock固定序列号
+    "wrist_camera.optical_frame": wrist_camera_color_optical_frame  # 腕部彩色光学坐标系
+    "wrist_camera.calibration_revision": mock-calibration-v2  # Mock标定修订号
+    "wrist_camera.component_instance_id": 2     # 腕部相机稳定组件实例号，不能与头相机重复
+    "wrist_camera.color_width": 640             # RGB宽度
+    "wrist_camera.color_height": 480            # RGB高度
+    "wrist_camera.depth_width": 640             # 深度宽度
+    "wrist_camera.depth_height": 480            # 深度高度
+    "wrist_camera.fps": 30                      # 模拟帧率
+    "wrist_camera.mock_depth_m": 0.6            # 默认模拟深度0.6米
+    "wrist_camera.min_depth_m": 0.15            # Mock有效深度下界
+    "wrist_camera.max_depth_m": 3.0             # Mock有效深度上界
+    "wrist_camera.allow_unbound_device": true   # Mock不需要真实硬件绑定

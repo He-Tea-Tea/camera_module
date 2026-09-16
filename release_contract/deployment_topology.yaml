@@ -1,18 +1,18 @@
-# 相机数据面的部署边界；脑端只接收整机公共能力。
+# 相机数据面的部署边界；脑端只接收整机公共能力，不直接访问厂商SDK或camera_interfaces。
 domains:
   brain_internal_domain:
-    hosts: [AGX_Orin]
+    hosts: [AGX_Orin]                            # 示例大脑SoC
     allowed: [ASR, VLM, LLM, VLA, Perception, Logging, Debug]
-    raw_camera_sdk: false
+    raw_camera_sdk: false                        # 大脑进程禁止直接链接相机厂商SDK
   body_control_domain:
-    hosts: [RK3576_small_brain]
+    hosts: [RK3576_small_brain]                  # 示例小脑SoC
     allowed: [CameraManager, Safety, Heartbeat, BodyState]
-    raw_camera_sdk: true
+    raw_camera_sdk: true                         # 小脑设备层允许使用厂商SDK
   local_camera_domain:
     hosts: [RK3576_small_brain]
-    allowed: [OrbbecSDKv2, librealsense, Mock]
+    allowed: [OrbbecSDKv2, librealsense, Mock]  # 只允许本地设备后端
     raw_camera_sdk: true
 network:
-  discovery: static_peers_or_discovery_server
-  production_security: SROS2_and_topic_whitelist
-  public_bridge: "只转译 robot_body_interfaces；不转发 camera_interfaces 私有端点"
+  discovery: static_peers_or_discovery_server   # 生产环境不依赖无约束默认动态发现
+  production_security: SROS2_and_topic_whitelist  # 生产环境使用DDS Security和端点白名单
+  public_bridge: "只转译robot_body_interfaces；不转发camera_interfaces私有端点"  # Router硬边界

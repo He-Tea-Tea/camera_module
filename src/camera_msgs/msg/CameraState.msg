@@ -1,22 +1,23 @@
-# 相机私有状态；不能作为大脑公共控制接口。
-string camera_name
-uint16 component_instance_id
-uint8 component_kind
-uint8 device_id
-uint8 state
-uint8 STATE_STOPPED=0
-uint8 STATE_CONNECTING=1
-uint8 STATE_STREAMING=2
-uint8 STATE_RECONNECTING=3
-uint8 STATE_FAULT=4
-bool rgb_ready
-bool depth_ready
-bool depth_aligned_to_color
-uint64 frame_sequence
-builtin_interfaces/Time last_frame_stamp
-bool time_trusted
-bool pair_synchronized
-string optical_frame
-string calibration_revision
-string last_error
-uint32 error_code
+# 相机私有状态；不能作为大脑公共控制接口，也不能替代V1.3 DeviceStateArray。
+string camera_name #逻辑相机名称
+uint16 component_instance_id #V1.3组件实例号，1..65534且跨重启稳定
+uint8 component_kind #组件类别；相机固定为COMPONENT_CAMERA=7
+uint8 device_id #公共DeviceState映射；相机固定为DEVICE_NONE=255
+uint8 state #当前相机私有生命周期状态
+uint8 STATE_STOPPED=0 #工作线程未运行或已退出
+uint8 STATE_CONNECTING=1 #首次连接/初始化设备
+uint8 STATE_STREAMING=2 #已经持续收到合法RGB-D帧
+uint8 STATE_RECONNECTING=3 #故障后正在重建SDK会话
+uint8 STATE_FAULT=4 #当前检测到设备/数据故障
+bool rgb_ready #当前是否可以提供合法RGB帧；STREAMING时为true
+bool depth_ready #当前是否可以提供合法Depth帧；STREAMING时为true
+bool depth_aligned_to_color #当前会话是否已经收到通过D2C验证的RGB-D帧
+uint8[16] frame_session_uuid #v0.2.4新增；当前streaming session UUID，重连后必须变化
+uint64 frame_sequence #当前session最近一帧序号；未收到帧时为0
+builtin_interfaces/Time last_frame_stamp #可信时才填写的最近采集时间；不可信时保持0
+bool time_trusted #last_frame_stamp是否可作为可信采集时间使用
+bool pair_synchronized #最近RGB/Depth设备时间差是否通过max_pair_delta_ms门控
+string optical_frame #当前相机输出三维坐标所属光学坐标系
+string calibration_revision #当前相机使用/声明的标定revision
+string last_error #最近一次内部故障的人类可读信息；健康时为空
+uint32 error_code #最近一次camera_module内部错误码；健康时为0

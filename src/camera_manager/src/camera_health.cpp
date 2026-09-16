@@ -3,6 +3,7 @@
 
 namespace camera_manager {
 
+// ready要求数据流正常、时间可信且RGB-D同步；真实无PTP相机通常会显示degraded但仍可本地闭环。
 const char *health_label(const CameraStatus &status) {
     switch (status.state) {
         case camera_adapter::CameraState::Streaming:

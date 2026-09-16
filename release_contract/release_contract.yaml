@@ -1,26 +1,28 @@
-# 发布前锁定的协议和部署契约。
-release_name: camera_module-v0.2.3-draft
-status: draft
-protocol_major: 1
-protocol_minor: 9
-abi_revision: 18
+# camera_module v0.2.4 模块级发布草案；不是V1.3整机权威release_contract.yaml。
+release_name: camera_module-v0.2.4              # 模块发布名称
+status: draft                                    # 未完成整机公共协议冻结前保持draft
+scope: camera_private_module                     # 仅描述相机小脑私有模块
+protocol_major: 1                                # 对照V1.3协议主版本
+protocol_minor: 9                                # 对照V1.3协议次版本
+abi_revision: 17                                 # 对齐2026-09-10 V1.3候选稿
 component:
-  component_kind: 7
-  device_id: 255
-  instance_id_policy: "部署文件固定，禁止由枚举顺序推导"
+  component_kind: 7                              # COMPONENT_CAMERA
+  device_id: 255                                 # DEVICE_NONE
+  instance_id_policy: "部署文件固定，禁止由枚举顺序推导"  # component_instance_id必须跨重启稳定
 time_policy:
-  default_hw_ptp_level: none
-  default_closed_loop_control_location: small_brain
-  local_camera_available_is_not_confirmation: true
-  stale_object_pose_result: STALE_OBJECT_POSE
-  missing_local_confirmation_result: PERCEPTION_CONFIRMATION_REQUIRED
+  default_hw_ptp_level: none                     # 当前未声明硬件PTP能力
+  default_closed_loop_control_location: small_brain  # 无PTP时最终视觉闭环留在小脑
+  local_camera_available_is_not_confirmation: true  # 相机在线不等于对象已完成本地重确认
+  stale_object_pose_result: STALE_OBJECT_POSE    # 供整机公共层映射的建议结果语义
+  missing_local_confirmation_result: PERCEPTION_CONFIRMATION_REQUIRED  # 缺少本地确认时的公共语义
 startup_policy:
-  bootstrap_before_capability_query: true
-  hash_mismatch_action: SAFE_IDLE
-  capability_query_after_handshake: true
-  private_camera_interfaces_visible_to_brain: false
+  bootstrap_before_capability_query: true        # 整机必须先Bootstrap再查公共能力
+  hash_mismatch_action: SAFE_IDLE                # 公共协议hash不一致时保持SAFE_IDLE
+  capability_query_after_handshake: true         # QueryCapabilities只能在兼容握手后调用
+  private_camera_interfaces_visible_to_brain: false  # Brain不得发现camera_interfaces
 validation:
-  mock_demo: "camera_manager_demo"
-  config_validator: "camera-config-validate config/cameras.yaml"
-  ros2_build: "./scripts/build_orbbec.sh"
-  ros2_launch: "ros2 launch camera_manager camera_system.launch.py"
+  mock_demo: "./scripts/build_mock.sh"           # 无硬件核心路径验证
+  config_validator: "camera-config-validate config/cameras.yaml"  # 参数校验
+  protocol_validator: "camera-protocol-validate release_contract"  # 私有协议草案一致性校验
+  ros2_build: "./scripts/build_orbbec.sh"        # 当前Orbbec实机构建入口
+  ros2_launch: "./scripts/run_head_camera.sh"    # 当前Gemini335Le启动入口

@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
+<!-- camera_manager负责小脑本地相机控制面；camera_interfaces/camera_msgs均为PRIVATE。 -->
 <package format="3">
   <name>camera_manager</name>
-  <version>0.2.3</version>
-  <description>相机生命周期、能力查询、私有状态和本地三维查询管理器。</description>
+  <version>0.2.4</version>
+  <description>相机生命周期、能力摘要、streaming session状态、本地三维查询和自动重连管理器。</description>
   <maintainer email="HeXuBin13@outlook.com">dyf</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>

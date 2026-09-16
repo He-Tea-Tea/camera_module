@@ -1,18 +1,19 @@
-# 小脑本地像素查询；大脑只通过受控能力获取语义证据。
-string camera_name
-uint64 sequence
-uint32 u
-uint32 v
-bool require_trusted_time
+# 小脑本地像素查询；大脑只通过整机公共语义能力获取视觉证据，禁止直接调用本Service。
+string camera_name #逻辑相机名称，例如head_camera；必须命中camera_manager已配置实例
+uint64 sequence #目标帧序号；0表示使用当前最新帧，非0只在有界缓存内精确查找
+uint32 u #D2C后彩色像素x坐标
+uint32 v #D2C后彩色像素y坐标
+bool require_trusted_time #true时要求帧具有已验证采集时间，否则返回TIME_UNTRUSTED
 ---
-bool success
-float64 x_m
-float64 y_m
-float64 z_m
-string optical_frame
-uint64 frame_sequence
-builtin_interfaces/Time capture_time
-bool time_trusted
-bool depth_valid
-uint32 error_code
-string message
+bool success #查询是否成功；机器判断优先使用success和error_code
+float64 x_m #相机optical_frame中的X坐标，单位米
+float64 y_m #相机optical_frame中的Y坐标，单位米
+float64 z_m #相机optical_frame中的Z坐标，单位米
+string optical_frame #返回XYZ所属的相机光学坐标系
+uint8[16] frame_session_uuid #v0.2.4新增；当前streaming session UUID，重连后必须变化
+uint64 frame_sequence #实际用于查询的session内帧序号
+builtin_interfaces/Time capture_time #可信时才填写的采集时间；不可信时保持0
+bool time_trusted #capture_time是否经过延迟上界/受控时钟规则验证
+bool depth_valid #目标像素是否具有有效深度；success=true时必须为true
+uint32 error_code #camera_module内部错误码；不能直接当作V1.3公共result_code
+string message #人类可读诊断信息，不作为控制判断唯一依据

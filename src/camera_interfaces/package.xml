@@ -1,12 +1,15 @@
 <?xml version="1.0"?>
+<!-- camera_interfaces全部为小脑私有接口，不属于V1.3公司级公共ABI。 -->
 <package format="3">
   <name>camera_interfaces</name>
-  <version>0.2.3</version>
-  <description>相机小脑私有服务和动作接口。</description>
+  <version>0.2.4</version>
+  <description>相机小脑私有服务和动作接口；全部端点必须保持PRIVATE/LOCAL_ONLY。</description>
   <maintainer email="HeXuBin13@outlook.com">dyf</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <!-- 接口字段使用builtin_interfaces/Time。 -->
   <depend>builtin_interfaces</depend>
+  <!-- rosidl生成期和运行期依赖。 -->
   <build_depend>rosidl_default_generators</build_depend>
   <exec_depend>rosidl_default_runtime</exec_depend>
   <member_of_group>rosidl_interface_packages</member_of_group>

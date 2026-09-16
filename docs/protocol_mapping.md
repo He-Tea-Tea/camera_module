@@ -1,24 +1,84 @@
-# 协议映射和边界
+# v0.2.4 与《具身本体大脑-小脑通信协议（ROS2）V1.3》映射
 
-本目录实现的是相机小脑模块。上传的 V1.3 协议要求 `interface_manifest.yaml` 与真实 rosidl 源码同时作为权威；因此本仓库只登记相机私有端点，整机公共接口仍需在 `robot_body_interfaces` 仓库中实现。
+本仓库只实现相机小脑本地模块。V1.3的公司级公共ABI由整机 `robot_body_interfaces` 和 `robot_body_bootstrap_interfaces` 仓库维护，本仓库不能自行创建同名公共协议端点。
 
-| 协议要求 | 本实现 | 验收方式 |
+| V1.3要求 | camera_module v0.2.4 | 状态 |
 | --- | --- | --- |
-| 大脑不直接访问硬件 | Orbbec/RealSense 只在 `camera_driver` 中出现 | 检查 `camera_manager` 和脑端依赖 |
-| 相机属于 `COMPONENT_CAMERA=7` | `CameraCapability.component_kind=7` | 调用能力查询 |
-| 无 DeviceState 的相机使用 `DEVICE_NONE=255` | 能力摘要默认 `device_id=255` | 检查 manifest |
-| 组件实例号固定 | YAML 中显式填写 `component_instance_id` | 配置校验工具 |
-| RGB-D 成对且深度对齐 | `CameraFrame::validate()` 强制检查 | Mock 冒烟测试 |
-| 旧帧不能伪装新鲜 | 不使用接收时间刷新设备时间；查询有 `max_frame_age_ms` 和可信时间门 | 过期/不可信测试 |
-| 没有硬件 PTP 时闭环留在小脑 | `closed_loop_control_location=small_brain` | 能力摘要和发布契约 |
-| 原始图像不进任务热路径 | Action 返回本地文件证据 URI；私有原始数据面 | 检查路由白名单 |
-| 私有接口不可被大脑调用 | manifest 标为 `PRIVATE/LOCAL_ONLY`，launch 不创建公共桥接 | SROS2/发现服务器配置 |
-| 启动先握手再查能力 | 发布前需由整机 Bootstrap 节点比较版本和 hash | 联调启动顺序 |
+| 大脑不得直接访问厂商硬件 | Orbbec/RealSense SDK仅存在于`camera_driver` | 已实现 |
+| 相机组件类别 | `component_kind=7` -> `COMPONENT_CAMERA` | 已实现 |
+| 相机不占公共DeviceState | `device_id=255` -> `DEVICE_NONE` | 已实现 |
+| component_instance_id稳定唯一 | YAML显式配置，范围1..65534 | 已实现 |
+| PRIVATE只能LOCAL_ONLY | 4类相机IDL全部写入`camera_private_manifest` | 已实现草案 |
+| 状态走Topic | `CameraState.msg`本地Topic | 已实现私有状态 |
+| 等待/取消型操作走Action | `CaptureImage.action` | 已实现私有Action |
+| RGB-D本地闭环 | FrameSync + Aggregate + D2C + FrameBuffer | 已实机验证 |
+| 本地三维证据 | `GetPoint3D.srv` | 已实机验证 |
+| 观测连续性 | `frame_session_uuid + frame_sequence` | v0.2.4新增 |
+| 无PTP时最终闭环留小脑 | `hw_ptp=none`、`closed_loop=small_brain` | 已实现语义 |
+| QueryCapabilities公共服务 | 由整机能力汇聚器转换本地相机能力 | 本仓库不实现公共服务 |
+| Bootstrap/hash兼容握手 | 整机仓库实现 | 未在本仓库实现 |
+| Router/SROS2跨域权限 | 当前仅有部署草案 | 待整机部署验证 |
 
-## 需要整机仓库继续完成的部分
+## 私有接口
 
-1. 在 `robot_body_bootstrap_interfaces` 中落地协议版本、ABI、manifest 和 type hash 比较。
-2. 在 `robot_body_interfaces` 中把相机能力映射成公共语义能力，例如“获取视觉证据”，不要直接暴露 `GetPoint3D`。
-3. 在 Router/Bridge 上配置静态 peer、SROS2、服务白名单和私有域隔离。
-4. 将本模块的 `QueryCameraCapability` 结果转换为整机 `QueryCapabilities.srv` 的 `ComponentCapability` 和 `SkillCapability`。
-5. 对目标物体执行本地重确认、坐标变换、标定版本和观测新鲜度检查；本模块只提供相机证据。
+```text
+CameraState.msg
+GetPoint3D.srv
+QueryCameraCapability.srv
+CaptureImage.action
+```
+
+它们只允许：
+
+```text
+camera_manager
+    ↕
+小脑本地perception / skill / diagnostic
+```
+
+禁止：
+
+```text
+Brain -> camera_interfaces/*
+Brain -> OrbbecSDK/librealsense
+```
+
+## QueryCameraCapability到公共QueryCapabilities
+
+当前本地能力摘要可以为整机层提供：
+
+```text
+component_instance_id
+component_kind=7
+DEVICE_NONE语义
+local_camera_available
+hw_ptp_level
+closed_loop_control_location
+```
+
+整机能力汇聚器负责转换为V1.3强类型：
+
+```text
+ComponentCapability.component_kind = COMPONENT_CAMERA
+ComponentCapability.device_state_id = DEVICE_NONE
+QueryCapabilities.local_camera_available = true/false
+QueryCapabilities.hw_ptp_level = HW_PTP_NONE
+QueryCapabilities.closed_loop_control_location = CLOSED_LOOP_CEREBELLUM
+```
+
+私有接口里保留的`"none"`和`"small_brain"`字符串不能直接复制进公共ABI，公共侧必须使用V1.3定义的uint8常量。
+
+## 时间与新鲜度
+
+真实设备默认：
+
+```text
+capture_delay_bound_verified=false
+time_trusted=false
+```
+
+本地仍用接收侧steady clock做缓存年龄和超时判断，但不会把接收时间伪装为设备采集时间。只有实际测得可靠延迟上界后，才能开启可信采集时间。
+
+## 发布说明
+
+`release_contract/camera_private_manifest.yaml` 是本模块的机器可检查私有清单，**不是**V1.3的整机权威 `interface_manifest.yaml`。正式公共hash、RIHS01类型hash、Router成员、SROS2成员和release contract都应在整机发布仓库生成和冻结。

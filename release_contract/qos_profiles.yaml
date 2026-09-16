@@ -1,22 +1,22 @@
-# 只描述相机私有端点的 QoS；公共能力 QoS 由整机协议仓库统一维护。
+# 只描述相机私有端点的QoS；公共能力QoS由整机协议仓库统一维护。
 camera_state:
-  reliability: reliable
-  durability: transient_local
-  history: keep_last
-  depth: 1
+  reliability: reliable                          # 状态不能静默丢失关键最后值
+  durability: transient_local                    # 新订阅者可以立即拿到最近一条状态
+  history: keep_last                             # 只保留最近状态
+  depth: 1                                       # 状态快照不需要排队历史
 local_service:
-  reliability: reliable
-  durability: volatile
+  reliability: reliable                          # 本地请求/响应要求可靠传输
+  durability: volatile                           # Service不保留历史数据
   history: keep_last
   depth: 1
 local_action:
-  reliability: reliable
+  reliability: reliable                          # 抓拍Action控制通道要求可靠
   durability: volatile
   history: keep_last
   depth: 1
 raw_image_local_debug:
-  reliability: best_effort
+  reliability: best_effort                       # 本地调试原始图允许丢帧，避免反压控制面
   durability: volatile
   history: keep_last
   depth: 2
-  allowed_route: LOCAL_ONLY
+  allowed_route: LOCAL_ONLY                      # 原始图调试面禁止跨大小脑公共路由

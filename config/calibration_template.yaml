@@ -1,19 +1,25 @@
 # 标定模板；部署前必须用实际标定结果替换，不能把默认值当成生产标定。
-camera_name: head_camera
-calibration_revision: "2026-09-14-lab-UNVERIFIED"
+camera_name: head_camera                         # 逻辑相机名称，必须与cameras.yaml一致
+camera_serial: "FILL_REAL_SERIAL"                # 真实设备序列号，防止标定制品串台
+calibration_revision: "UNVERIFIED"               # 标定修订号；验证完成后使用不可歧义的版本号或哈希
+measured_at: "待填写"                             # 标定完成时间
+operator: "待填写"                                # 标定执行人
+tool_version: "待填写"                            # 标定工具/脚本版本
 color:
-  width: 1280
-  height: 800
-  fx: 0.0
-  fy: 0.0
-  cx: 0.0
-  cy: 0.0
-  distortion_model: plumb_bob
-  distortion: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  width: 640                                     # 标定对应的彩色分辨率宽度
+  height: 400                                    # 标定对应的彩色分辨率高度
+  fx: 0.0                                        # 彩色相机焦距fx，未填写时禁止作为生产标定
+  fy: 0.0                                        # 彩色相机焦距fy
+  cx: 0.0                                        # 彩色相机主点cx
+  cy: 0.0                                        # 彩色相机主点cy
+  distortion_model: plumb_bob                    # 与统一相机契约兼容的畸变模型
+  distortion: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # k1,k2,p1,p2,k3,k4,k5,k6
 depth_to_color:
-  rotation: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
-  translation_m: [0.0, 0.0, 0.0]
+  rotation: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]  # 深度到彩色的3x3旋转矩阵
+  translation_m: [0.0, 0.0, 0.0]                # 深度到彩色的平移，单位米
 validation:
-  reprojection_error_px: null
-  operator: "待填写"
-  measured_at: "待填写"
+  reprojection_error_px: null                    # 重投影误差；null表示尚未验证
+  depth_error_mm: null                           # 深度/空间点验证误差；null表示尚未验证
+  sample_count: 0                                # 验证样本数
+artifact:
+  sha256: "待填写"                               # 标定制品SHA-256，用于发布时固定revision

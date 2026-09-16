@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
+<!-- camera_msgs只用于小脑本地相机状态，不应被Brain作为公共协议直接依赖。 -->
 <package format="3">
   <name>camera_msgs</name>
-  <version>0.2.3</version>
-  <description>相机私有状态消息。</description>
+  <version>0.2.4</version>
+  <description>相机私有状态消息，包含streaming session UUID、RGB-D同步和时间可信度。</description>
   <maintainer email="HeXuBin13@outlook.com">dyf</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
