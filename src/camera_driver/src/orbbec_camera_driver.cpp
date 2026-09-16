@@ -63,12 +63,42 @@ void OrbbecCameraDriver::initialize(const CameraConfig &config) {
 
         pipeline_ = std::make_unique<ob::Pipeline>(device_);
         pipeline_config_ = std::make_shared<ob::Config>();
-        pipeline_config_->enableVideoStream(OB_STREAM_COLOR, config.color_width,
-                                            config.color_height, config.fps, OB_FORMAT_RGB);
-        pipeline_config_->enableVideoStream(OB_STREAM_DEPTH, config.depth_width,
-                                            config.depth_height, config.fps, OB_FORMAT_Z16);
-        // 软件对齐输出深度到彩色坐标，避免上层再依赖厂商坐标转换。
-        pipeline_config_->setAlignMode(ALIGN_D2C_SW_MODE);
+
+        // 配置彩色码流。
+        // Gemini335Le 实测支持 640x400 @ 30 FPS / RGB。
+        pipeline_config_->enableVideoStream(
+            OB_STREAM_COLOR,
+            config.color_width,
+            config.color_height,
+            config.fps,
+            OB_FORMAT_RGB
+        );
+
+        // 配置深度码流。
+        // Gemini335Le 实测支持 640x400 @ 30 FPS / Y16。
+        pipeline_config_->enableVideoStream(
+            OB_STREAM_DEPTH,
+            config.depth_width,
+            config.depth_height,
+            config.fps,
+            OB_FORMAT_Y16
+        );
+
+        // 要求 SDK 只有在 Color 和 Depth 都存在时才输出 FrameSet。
+        // 否则 waitForFrameset() 可能返回只包含单一流的 FrameSet，
+        // 上层会错误地把正常的帧聚合过程判断为设备故障。
+        pipeline_config_->setFrameAggregateOutputMode(
+            OB_FRAME_AGGREGATE_OUTPUT_ALL_TYPE_FRAME_REQUIRE
+        );
+
+        // 软件执行 Depth -> Color 对齐。
+        // 对齐后的 Depth 应与 Color 使用相同图像尺寸。
+        pipeline_config_->setAlignMode(
+            ALIGN_D2C_SW_MODE
+        );
+
+        instance_ = new_instance_id();
+        sequence_ = 0;
         instance_ = new_instance_id();
         sequence_ = 0;
         description_.serial = actual_serial;

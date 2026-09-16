@@ -44,7 +44,7 @@ camera_manager:                                # 顶层节点名，必须和came
 
     # 相机允许使用的深度范围，单位为米。
     "head_camera.min_depth_m": 0.2
-    "head_camera.max_depth_m": 10.0
+    "head_camera.max_depth_m": 30.0
 
     # ---- 腕部RealSense D436配置 ----
     # 当前没有D436，因此以下参数全部保留为注释，不会被camera_manager读取。
