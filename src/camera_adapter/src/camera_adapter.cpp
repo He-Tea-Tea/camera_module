@@ -89,6 +89,9 @@ void CameraConfig::validate() const {
     if (backend == "realsense" && !ip_address.empty()) {
         throw CameraError(ErrorCode::InvalidConfig, "本 RealSense 后端仅支持按 SDK 序列号选择设备");
     }
+    if (backend == "orbbec" && !ip_address.empty() && network_port == 0) {
+        throw CameraError(ErrorCode::InvalidConfig, "Orbbec 网络设备端口必须为 1..65535");
+    }
 }
 
 void Intrinsics::validate() const {

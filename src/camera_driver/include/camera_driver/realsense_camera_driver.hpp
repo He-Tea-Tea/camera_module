@@ -28,6 +28,7 @@ private:
     rs2::pipeline pipeline_;
     rs2::config pipeline_config_;
     rs2::pipeline_profile pipeline_profile_;
+    std::unique_ptr<rs2::align> align_to_color_;
 #endif
     camera_adapter::CameraConfig config_;
     camera_adapter::DeviceDescription description_;

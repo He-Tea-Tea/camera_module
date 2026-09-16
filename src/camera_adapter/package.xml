@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>camera_adapter</name>
-  <version>0.2.0</version>
+  <version>0.2.3</version>
   <description>与厂商 SDK 解耦的 RGB-D 相机数据契约和帧缓存。</description>
   <maintainer email="HeXuBin13@outlook.com">dyf</maintainer>
   <license>Apache-2.0</license>

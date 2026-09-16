@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>camera_driver</name>
-  <version>0.2.0</version>
+  <version>0.2.3</version>
   <description>Orbbec Gemini335Le、RealSense D436 和 Mock 相机驱动。</description>
   <maintainer email="HeXuBin13@outlook.com">dyf</maintainer>
   <license>Apache-2.0</license>

@@ -8,9 +8,10 @@ camera_manager:                                # 顶层节点名，必须和came
     "head_camera.backend": orbbec              # 使用Orbbec普通SDK驱动
     "head_camera.model": Gemini335Le           # 相机型号，用于日志、状态和能力查询
 
-    # 当前驱动中IP不为空时优先按IP连接，serial暂时只用于记录和人工核对。
+    # 网络设备按IP连接后仍会核对真实序列号，防止连接到错误设备。
     "head_camera.serial": "CPEP163000LG"       # 相机真实序列号
     "head_camera.ip_address": "192.168.1.10"   # 335LE实际固定IP地址
+    "head_camera.network_port": 8090           # Orbbec网络设备服务端口
     "head_camera.allow_unbound_device": false  # 禁止使用未绑定的相机设备
 
     # 相机在整机协议中的身份信息。
@@ -20,7 +21,7 @@ camera_manager:                                # 顶层节点名，必须和came
     # 当前还没有完成正式标定，先明确标记为未验证。
     "head_camera.calibration_revision": factory-unverified-20260916
 
-    # RGB与Depth需要使用SDK支持的匹配分辨率。
+    # RGB与Depth使用已经通过官方SDK验证的码流组合。
     "head_camera.color_width": 640             # 彩色图像宽度
     "head_camera.color_height": 400            # 彩色图像高度
     "head_camera.depth_width": 640             # 深度图像宽度
@@ -29,7 +30,7 @@ camera_manager:                                # 顶层节点名，必须和came
 
     # 取帧、掉线判断和自动重连参数。
     "head_camera.wait_timeout_ms": 1000        # 单次等待RGB-D帧的最长时间
-    "head_camera.disconnect_timeout_ms": 3000  # 连续无帧后判定设备异常的参考时间
+    "head_camera.disconnect_timeout_ms": 3000  # 连续无帧达到该时间后重建SDK会话
     "head_camera.reconnect_delay_ms": 1000     # 发生故障后的重连等待时间
     "head_camera.cache_capacity": 6            # 小脑内部最多保留的RGB-D帧数
 

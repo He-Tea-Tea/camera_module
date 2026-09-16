@@ -1,4 +1,4 @@
-# camera_moduls v0.2.0
+# camera_module v0.2.3
 
 这是从 GitHub `v0.1.1` 整理出的相机小脑实现。它按照《具身本体大脑-小脑通信协议（ROS2）方案 V1.3》的边界开发：厂商 SDK、设备枚举、帧同步、标定和原始数据都留在小脑；大脑只通过整机公共能力获得视觉证据。
 
@@ -14,14 +14,16 @@
 
 ## 与 v0.1.1 的关键修改
 
-v0.1.1 只有目录和接口骨架，Manager、Driver、Launch 基本为空，动作文件的 Goal/Feedback/Result 顺序也不符合 ROS2 语法，`camera_msgs` 的 rosidl 依赖声明不完整。v0.2.0 已补齐可运行 Mock 路径、真实 SDK 隔离、缓存和重连策略，并修正了这些接口问题。
+v0.2.3 在 v0.2.2 真实头部相机配置基础上修复了同步初始化阻塞：ROS2 控制面会先启动，
+硬件连接在后台执行。SDK 永久阻塞时，节点退出也不会无限等待；掉线超时、重新初始化、
+网络设备序列号核对、抓拍超时和取消、接收时间采样均已补齐。
 
 当前仍把相机服务标为 `PRIVATE/LOCAL_ONLY`。协议要求的公共 `robot_body_interfaces`、Bootstrap hash 比较、Router/SROS2 和对象本地重确认必须在整机仓库完成，不能把本仓库的私有服务直接给大脑。
 
 ## 目录
 
 ```text
-camera_moduls_v0.2.0/
+camera_module/
 ├── config/cameras.yaml
 ├── launch/camera_system.launch.py
 ├── release_contract/
@@ -39,7 +41,7 @@ camera_moduls_v0.2.0/
 当前容器没有 ROS2、colcon 或 CMake，因此可以直接用系统 C++ 编译器验证核心路径：
 
 ```bash
-cd camera_moduls_v0.2.0
+cd camera_module
 mkdir -p ../tmp/build_mock
 INC="-Isrc/camera_adapter/include -Isrc/camera_driver/include -Isrc/camera_manager/include"
 g++ -std=c++17 -Wall -Wextra -Wpedantic -pthread $INC \
@@ -63,25 +65,23 @@ python3 src/camera_tools/camera_tools/config_validate.py config/cameras.yaml
 
 ## ROS2 构建
 
-目标环境是 Ubuntu 22.04、ROS2 Humble 或更新版本。先安装 ROS2 基础包，再把本目录放入工作空间的 `src`：
+目标环境是 Ubuntu 22.04 和 ROS2 Humble。项目使用工作空间外的独立 SDK 安装目录，
+先设置 SDK 环境脚本位置，再运行分阶段构建脚本：
 
 ```bash
-mkdir -p ~/camera_ws/src
-cp -a camera_moduls_v0.2.0 ~/camera_ws/src/camera_moduls
-cd ~/camera_ws
-source /opt/ros/humble/setup.bash
-rosdep install --from-paths src --ignore-src -r -y
-colcon build --symlink-install
-source install/setup.bash
+cd ~/hxb_code/camera_module
+
+# 指向已部署的SDK环境脚本，默认值就是下面这个路径。
+export CAMERA_SDK_SETUP="$HOME/hxb_code/camera_sdk/activate_camera_sdks.sh"
+
+# 只启用当前需要的Orbbec后端，并分包构建以消除无关CMake警告。
+./scripts/build_orbbec.sh
 ```
 
-没有真实 SDK 时，先关闭两个 SDK 选项，使用 Mock 节点；有 SDK 时按下面的方式打开：
+构建完成后启动头部相机：
 
 ```bash
-colcon build --symlink-install \
-  --cmake-args \
-  -DCAMERA_DRIVER_ENABLE_ORBBEC=ON \
-  -DCAMERA_DRIVER_ENABLE_REALSENSE=ON
+./scripts/run_head_camera.sh
 ```
 
 无硬件的 ROS2 联调可以加载 `config/cameras.mock.yaml`：
@@ -104,13 +104,20 @@ ros2 launch camera_manager camera_system.launch.py \
 5. 未完成采集延迟测量时保持 `capture_delay_bound_verified: false`。
 6. 确认 SDK 能提供 RGB 与对齐深度；当前统一契约输出相同的彩色像素尺寸。
 
-配置通过后启动：
+配置通过后也可以手动启动：
 
 ```bash
-ros2 launch camera_manager camera_system.launch.py
+source /opt/ros/humble/setup.bash
+source "$HOME/hxb_code/camera_sdk/activate_camera_sdks.sh"
+source "$HOME/hxb_code/camera_module/install/setup.bash"
+
+ros2 launch camera_manager camera_system.launch.py \
+  config:="$HOME/hxb_code/camera_module/config/cameras.yaml"
 ```
 
-节点从参数中的 `camera_names` 和 `<camera_name>.<field>` 读取相机。头部和腕部的默认配置使用真实后端，是部署模板；没有设备时请运行上面的 Mock 演示，不要把真实配置改成按发现顺序自动选择。
+节点从参数中的 `camera_names` 和 `<camera_name>.<field>` 读取相机。v0.2.3 会先建立本地
+ROS2 端点，再由后台线程连接相机；连接期间状态为 `CONNECTING`，失败后进入
+`FAULT/RECONNECTING`，不会阻塞参数服务和状态 Topic。
 
 ## 私有接口
 

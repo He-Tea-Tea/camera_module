@@ -16,7 +16,8 @@ void RealSenseCameraDriver::initialize(const CameraConfig &config) {
 #ifndef CAMERA_DRIVER_HAS_REALSENSE
     (void)config;
     throw CameraError(ErrorCode::UnsupportedBackend,
-                      "当前构建未启用 RealSense SDK，请安装 librealsense 后打开 CAMERA_DRIVER_ENABLE_REALSENSE");
+                      "当前构建未启用 RealSense SDK，请安装 librealsense 后打开 "
+                      "CAMERA_DRIVER_ENABLE_REALSENSE");
 #else
     try {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -52,6 +53,7 @@ void RealSenseCameraDriver::start() {
     }
     try {
         pipeline_profile_ = pipeline_.start(pipeline_config_);
+        align_to_color_ = std::make_unique<rs2::align>(RS2_STREAM_COLOR);
         const auto device = pipeline_profile_.get_device();
         description_.serial = device.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER);
         description_.model = device.get_info(RS2_CAMERA_INFO_NAME);
@@ -72,8 +74,10 @@ void RealSenseCameraDriver::start() {
 std::shared_ptr<CameraFrame> RealSenseCameraDriver::make_frame(
     const rs2::frameset &input, uint64_t receive_steady_ns,
     uint64_t receive_system_ns) {
-    rs2::align align_to_color(RS2_STREAM_COLOR);
-    const rs2::frameset frameset = align_to_color.process(input);
+    if (!align_to_color_) {
+        throw CameraError(ErrorCode::NotReady, "RealSense 对齐器尚未初始化");
+    }
+    const rs2::frameset frameset = align_to_color_->process(input);
     const rs2::video_frame color = frameset.get_color_frame();
     const rs2::depth_frame depth = frameset.get_depth_frame();
     if (!color || !depth) {
@@ -156,10 +160,11 @@ std::shared_ptr<CameraFrame> RealSenseCameraDriver::wait_frame(uint32_t timeout_
         throw CameraError(ErrorCode::NotReady, "RealSense 驱动未启动");
     }
     try {
+        const auto frameset = pipeline_.wait_for_frames(static_cast<unsigned int>(timeout_ms));
+        // 接收时间必须在 SDK 返回帧之后采样，避免把阻塞等待时间计入帧年龄。
         const uint64_t receive_steady = steady_now_ns();
         const uint64_t receive_system = system_now_ns();
-        return make_frame(pipeline_.wait_for_frames(static_cast<unsigned int>(timeout_ms)),
-                          receive_steady, receive_system);
+        return make_frame(frameset, receive_steady, receive_system);
     } catch (const CameraError &) {
         throw;
     } catch (const std::exception &error) {
@@ -183,6 +188,7 @@ void RealSenseCameraDriver::stop() noexcept {
         } catch (...) {
         }
     }
+    align_to_color_.reset();
 #endif
     running_ = false;
 }

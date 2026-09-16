@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstring>
 #include <exception>
+#include <iostream>
 
 namespace camera_driver {
 using namespace camera_adapter;
@@ -21,11 +22,19 @@ void OrbbecCameraDriver::initialize(const CameraConfig &config) {
     try {
         std::lock_guard<std::mutex> lock(mutex_);
         config_ = config;
+        std::clog << "[orbbec_driver] [" << config.name
+                  << "] 创建 Orbbec SDK Context" << std::endl;
         context_ = std::make_unique<ob::Context>();
         if (!config.ip_address.empty()) {
-            context_->enableNetDeviceEnumeration(true);
+            std::clog << "[orbbec_driver] [" << config.name
+                      << "] 连接网络设备 " << config.ip_address
+                      << ":" << config.network_port << std::endl;
+            // 固定IP连接直接调用createNetDevice，不启动全网段设备枚举线程。
+            // SDK内部会主动查询指定地址，避免网络枚举器影响启动和退出。
             device_ = context_->createNetDevice(config.ip_address.c_str(), config.network_port);
         } else {
+            std::clog << "[orbbec_driver] [" << config.name
+                      << "] 枚举本机 Orbbec 设备" << std::endl;
             auto devices = context_->queryDeviceList();
             if (devices->getCount() == 0) {
                 throw CameraError(ErrorCode::CameraNotFound, "没有发现 Orbbec 设备");
@@ -40,6 +49,18 @@ void OrbbecCameraDriver::initialize(const CameraConfig &config) {
         if (device_->isGlobalTimestampSupported()) {
             device_->enableGlobalTimestamp(true);
         }
+        const auto info = device_->getDeviceInfo();
+        const std::string actual_serial = info->getSerialNumber();
+        if (!config.serial.empty() && actual_serial != config.serial) {
+            throw CameraError(
+                ErrorCode::InvalidConfig,
+                "Orbbec 实际序列号 " + actual_serial +
+                    " 与配置序列号 " + config.serial + " 不一致");
+        }
+        std::clog << "[orbbec_driver] [" << config.name
+                  << "] 已打开设备 model=" << info->getName()
+                  << " serial=" << actual_serial << std::endl;
+
         pipeline_ = std::make_unique<ob::Pipeline>(device_);
         pipeline_config_ = std::make_shared<ob::Config>();
         pipeline_config_->enableVideoStream(OB_STREAM_COLOR, config.color_width,
@@ -50,13 +71,14 @@ void OrbbecCameraDriver::initialize(const CameraConfig &config) {
         pipeline_config_->setAlignMode(ALIGN_D2C_SW_MODE);
         instance_ = new_instance_id();
         sequence_ = 0;
-        const auto info = device_->getDeviceInfo();
-        description_.serial = info->getSerialNumber();
+        description_.serial = actual_serial;
         description_.model = info->getName();
         description_.imu_supported = false;
         description_.active_fps = config.fps;
         initialized_ = true;
         running_ = false;
+        std::clog << "[orbbec_driver] [" << config.name
+                  << "] RGB-D Profile 配置完成" << std::endl;
     } catch (const CameraError &) {
         throw;
     } catch (const std::exception &error) {
@@ -75,11 +97,15 @@ void OrbbecCameraDriver::start() {
         throw CameraError(ErrorCode::NotReady, "Orbbec 驱动尚未初始化");
     }
     try {
+        std::clog << "[orbbec_driver] [" << config_.name
+                  << "] 启用帧同步并启动 Pipeline" << std::endl;
         pipeline_->enableFrameSync();
         pipeline_->start(pipeline_config_);
         instance_ = new_instance_id();
         sequence_ = 0;
         running_ = true;
+        std::clog << "[orbbec_driver] [" << config_.name
+                  << "] Pipeline 启动成功" << std::endl;
     } catch (const std::exception &error) {
         throw CameraError(ErrorCode::DeviceFailure,
                           std::string("Orbbec 启动失败: ") + error.what());
@@ -154,12 +180,13 @@ std::shared_ptr<CameraFrame> OrbbecCameraDriver::wait_frame(uint32_t timeout_ms)
         throw CameraError(ErrorCode::NotReady, "Orbbec 驱动未启动");
     }
     try {
-        const uint64_t receive_steady = steady_now_ns();
-        const uint64_t receive_system = system_now_ns();
         const auto frameset = pipeline_->waitForFrameset(timeout_ms);
         if (!frameset) {
             throw CameraError(ErrorCode::Timeout, "Orbbec 等待帧超时");
         }
+        // 接收时间必须在 SDK 返回帧之后采样，不能把等待开始时间当作接收时间。
+        const uint64_t receive_steady = steady_now_ns();
+        const uint64_t receive_system = system_now_ns();
         return make_frame(frameset, receive_steady, receive_system);
     } catch (const CameraError &) {
         throw;

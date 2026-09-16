@@ -5,6 +5,7 @@
 #include "camera_adapter/frame_buffer.hpp"
 
 #include <atomic>
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -37,6 +38,8 @@ struct CameraStatus {
     uint64_t frame_count = 0;
     uint64_t last_sequence = 0;
     uint64_t last_receive_steady_ns = 0;
+    uint64_t last_capture_system_ns = 0;
+    uint64_t state_since_steady_ns = 0;
     bool time_trusted = false;
     bool pair_synchronized = false;
     std::string last_error;
@@ -66,13 +69,14 @@ public:
 private:
     struct Record {
         camera_adapter::CameraConfig config;
-        std::unique_ptr<camera_adapter::CameraAdapter> adapter;
         camera_adapter::FrameBuffer buffer;
         mutable std::mutex mutex;
+        std::mutex finish_mutex;
+        std::condition_variable finish_condition;
         std::thread worker;
         std::atomic<bool> stop_requested{false};
-        bool initialized = false;
-        bool started = false;
+        std::atomic<bool> worker_finished{true};
+        camera_adapter::DeviceDescription description;
         CameraStatus status;
 
         explicit Record(camera_adapter::CameraConfig value)
@@ -82,13 +86,14 @@ private:
     static std::unique_ptr<camera_adapter::CameraAdapter> make_adapter(
         const camera_adapter::CameraConfig &config);
     static void set_error(Record &record, const camera_adapter::CameraError &error);
-    void worker_loop(Record &record);
+    static bool wait_interruptible(Record &record, uint32_t delay_ms);
+    static void worker_loop(const std::shared_ptr<Record> &record);
     Record &get_record(const std::string &camera_name) const;
 
-    std::unordered_map<std::string, std::unique_ptr<Record>> records_;
+    std::unordered_map<std::string, std::shared_ptr<Record>> records_;
     mutable std::mutex mutex_;
-    bool initialized_ = false;
-    bool started_ = false;
+    std::atomic<bool> initialized_{false};
+    std::atomic<bool> started_{false};
 };
 
 }  // namespace camera_manager
