@@ -1,7 +1,7 @@
 camera_manager:                                # 顶层节点名，必须和camera_manager节点名一致
   ros__parameters:                             # ROS2参数固定写法，所有参数都放在这一节下
-    # camera_names: [head_camera, wrist_camera] # 双相机部署时启用这一行
-    camera_names: [head_camera]                # 当前只启用头部335LE相机
+    camera_names: [head_camera, wrist_camera]  # 双相机部署时启用这一行
+    #camera_names: [head_camera]                # 当前只启用头部335LE相机
 
     # ---- 头部Orbbec Gemini335LE配置 ----
     "head_camera.backend": orbbec              # 使用Orbbec普通SDK驱动
@@ -45,28 +45,33 @@ camera_manager:                                # 顶层节点名，必须和came
     "head_camera.min_depth_m": 0.2             # 小于该距离的深度统一写成0，表示无效
     "head_camera.max_depth_m": 30.0            # 大于该距离的深度统一写成0，表示无效
 
-    # ---- 腕部RealSense D436配置 ----
-    # 当前没有D436，因此以下参数全部保留为注释，不会被camera_manager读取。
-    # "wrist_camera.backend": realsense         # 使用librealsense普通SDK驱动
-    # "wrist_camera.model": D436                # 腕部相机型号
-    # "wrist_camera.serial": "FILL_REAL_SERIAL" # D436真实序列号，多相机时必须固定绑定
-    # "wrist_camera.ip_address": ""             # 当前RealSense驱动只支持USB序列号绑定
-    # "wrist_camera.allow_unbound_device": false  # 禁止自动选择未绑定的RealSense设备
-    # "wrist_camera.component_instance_id": 2   # 腕部相机组件编号，不能和头相机重复
-    # "wrist_camera.optical_frame": wrist_camera_color_optical_frame  # 腕部彩色光学坐标系
-    # "wrist_camera.calibration_revision": factory-unverified
-    # "wrist_camera.color_width": 640           # 腕部彩色图像宽度
-    # "wrist_camera.color_height": 480          # 腕部彩色图像高度
-    # "wrist_camera.depth_width": 640           # 腕部深度图像宽度
-    # "wrist_camera.depth_height": 480          # 腕部深度图像高度
-    # "wrist_camera.fps": 30                    # 腕部相机目标帧率
-    # "wrist_camera.wait_timeout_ms": 1000      # 单次等待帧的最长时间
-    # "wrist_camera.disconnect_timeout_ms": 3000  # 掉线判断时间
-    # "wrist_camera.reconnect_delay_ms": 1000   # 自动重连间隔
-    # "wrist_camera.cache_capacity": 6          # 腕部相机缓存帧数
-    # "wrist_camera.max_frame_age_ms": 500      # 允许使用的最大帧年龄
-    # "wrist_camera.max_pair_delta_ms": 35      # RGB与Depth最大采集时间差
-    # "wrist_camera.capture_delay_bound_verified": false  # 尚未验证采集延迟
-    # "wrist_camera.capture_delay_bound_ms": 0             # 采集延迟上界
-    # "wrist_camera.min_depth_m": 0.15          # 腕部相机最小有效深度
-    # "wrist_camera.max_depth_m": 3.0           # 腕部相机最大有效深度
+    # ---- 腕部 RealSense D436 配置 ----
+
+"wrist_camera.backend": realsense                    # 使用 librealsense SDK 驱动
+"wrist_camera.model": D436                          # 腕部相机型号
+"wrist_camera.serial": "405622075137"               # D436 真实序列号，固定绑定当前设备
+"wrist_camera.ip_address": ""                       # RealSense 通过 USB 连接，不使用 IP 地址
+"wrist_camera.allow_unbound_device": false          # 禁止自动选择未绑定设备，避免多相机时串设备
+"wrist_camera.component_instance_id": 2             # 腕部相机组件编号，不能与头部相机重复
+"wrist_camera.optical_frame": wrist_camera_color_optical_frame  # 对齐后统一使用彩色相机光学坐标系
+"wrist_camera.calibration_revision": factory-unverified          # 当前尚未完成正式标定验收
+
+"wrist_camera.color_width": 640                     # 彩色图像宽度，当前使用 640
+"wrist_camera.color_height": 480                    # 彩色图像高度，当前使用 480
+"wrist_camera.depth_width": 640                     # 深度图像宽度，当前使用 640
+"wrist_camera.depth_height": 480                    # 深度图像高度，当前使用 480
+"wrist_camera.fps": 30                              # RGB 和 Depth 目标帧率为 30 FPS
+
+"wrist_camera.wait_timeout_ms": 1000                # 单次等待 RGB-D 帧的最长时间，超过则本次判定超时
+"wrist_camera.disconnect_timeout_ms": 3000          # 连续 3 秒没有有效帧时判定设备掉线
+"wrist_camera.reconnect_delay_ms": 1000             # 掉线后每隔 1 秒尝试重新连接设备
+
+"wrist_camera.cache_capacity": 6                    # 缓存最近 6 组 RGB-D 帧
+"wrist_camera.max_frame_age_ms": 500                # 超过 500 ms 的旧帧不允许继续用于业务
+"wrist_camera.max_pair_delta_ms": 35                # RGB 与 Depth 最大允许时间差为 35 ms
+
+"wrist_camera.capture_delay_bound_verified": false  # 当前尚未完成 D436 采集延迟 Benchmark 验证
+"wrist_camera.capture_delay_bound_ms": 0            # 未验证前不声明有效采集延迟上界
+
+"wrist_camera.min_depth_m": 0.15                    # 腕部相机最小有效深度 0.15 m，近于该值记为无效
+"wrist_camera.max_depth_m": 3.0                     # 腕部相机最大有效深度 3.0 m，远于该值记为无效
